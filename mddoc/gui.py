@@ -1,7 +1,8 @@
 """
 Modern Desktop GUI for MdDoc Studio.
-Built with CustomTkinter for a sleek, modern Windows 11 / macOS dark & light interface.
-Non-resizable fixed pixel-perfect layout with sidebar navigation, live editor, custom theme designer, and developer profile.
+Built with CustomTkinter for a sleek, modern Windows 11 / macOS interface.
+Supports dynamic Creamy Light Blue & Deep Obsidian Dark themes with automatic transitions.
+Fixed non-resizable pixel-perfect layout with sidebar navigation, live editor, custom theme designer, and developer profile.
 """
 
 import os
@@ -81,8 +82,8 @@ class MdDocModernApp(ctk.CTk):
         # Center window on screen
         self._center_window(900, 780)
 
-        # App Theme Colors
-        self.configure(fg_color="#0F172A")
+        # Creamy Ice-Blue in Light Mode / Deep Obsidian in Dark Mode
+        self.configure(fg_color=("#F0F4F8", "#0B0F19"))
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
 
@@ -103,7 +104,6 @@ class MdDocModernApp(ctk.CTk):
         self.geometry(f"{width}x{height}+{x}+{y}")
 
     def _set_window_icon(self):
-        # Determine base directory whether running as script or frozen PyInstaller exe
         if getattr(sys, 'frozen', False):
             base_dir = sys._MEIPASS
         else:
@@ -128,14 +128,21 @@ class MdDocModernApp(ctk.CTk):
 
     def _create_layout(self):
         # Configure Grid (2 columns: Sidebar & Main Area)
-        self.grid_columnconfigure(0, weight=0)  # Fixed sidebar width
-        self.grid_columnconfigure(1, weight=1)  # Main Content
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         # ==========================================
         # 1. LEFT SIDEBAR NAVIGATION
         # ==========================================
-        self.sidebar_frame = ctk.CTkFrame(self, width=220, corner_radius=0, fg_color="#090E17")
+        self.sidebar_frame = ctk.CTkFrame(
+            self,
+            width=220,
+            corner_radius=0,
+            fg_color=("#E2E8F0", "#070B12"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(6, weight=1)
 
@@ -144,7 +151,7 @@ class MdDocModernApp(ctk.CTk):
             self.sidebar_frame,
             text="📄 MdDoc Studio",
             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         )
         lbl_logo.grid(row=0, column=0, padx=20, pady=(24, 4), sticky="w")
 
@@ -152,7 +159,7 @@ class MdDocModernApp(ctk.CTk):
             self.sidebar_frame,
             text="v1.0.0 • Desktop Edition",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
-            text_color="#38BDF8"
+            text_color=("#0284C7", "#38BDF8")
         )
         lbl_version.grid(row=1, column=0, padx=20, pady=(0, 24), sticky="w")
 
@@ -164,9 +171,9 @@ class MdDocModernApp(ctk.CTk):
             anchor="w",
             height=38,
             corner_radius=8,
-            fg_color="#2563EB",
-            hover_color="#1D4ED8",
-            text_color="#FFFFFF",
+            fg_color=("#2563EB", "#2563EB"),
+            hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#FFFFFF", "#FFFFFF"),
             command=lambda: self._select_view("doc")
         )
         self.btn_nav_doc.grid(row=2, column=0, padx=14, pady=4, sticky="ew")
@@ -179,8 +186,8 @@ class MdDocModernApp(ctk.CTk):
             height=38,
             corner_radius=8,
             fg_color="transparent",
-            hover_color="#1E293B",
-            text_color="#94A3B8",
+            hover_color=("#CBD5E1", "#1E293B"),
+            text_color=("#334155", "#94A3B8"),
             command=lambda: self._select_view("theme")
         )
         self.btn_nav_theme.grid(row=3, column=0, padx=14, pady=4, sticky="ew")
@@ -193,8 +200,8 @@ class MdDocModernApp(ctk.CTk):
             height=38,
             corner_radius=8,
             fg_color="transparent",
-            hover_color="#1E293B",
-            text_color="#94A3B8",
+            hover_color=("#CBD5E1", "#1E293B"),
+            text_color=("#334155", "#94A3B8"),
             command=lambda: self._select_view("about")
         )
         self.btn_nav_about.grid(row=4, column=0, padx=14, pady=4, sticky="ew")
@@ -204,9 +211,9 @@ class MdDocModernApp(ctk.CTk):
             self.sidebar_frame,
             text="🌐 Launch Web Studio",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            fg_color="#0284C7",
-            hover_color="#0369A1",
-            text_color="#FFFFFF",
+            fg_color=("#0284C7", "#0284C7"),
+            hover_color=("#0369A1", "#0369A1"),
+            text_color=("#FFFFFF", "#FFFFFF"),
             height=34,
             corner_radius=8,
             command=self._launch_web_studio
@@ -217,8 +224,8 @@ class MdDocModernApp(ctk.CTk):
         lbl_mode = ctk.CTkLabel(
             self.sidebar_frame,
             text="Theme Mode:",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
-            text_color="#64748B"
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            text_color=("#475569", "#64748B")
         )
         lbl_mode.grid(row=7, column=0, padx=20, pady=(10, 0), sticky="w")
 
@@ -226,9 +233,10 @@ class MdDocModernApp(ctk.CTk):
             self.sidebar_frame,
             values=["Dark", "Light", "System"],
             font=ctk.CTkFont(family="Segoe UI", size=12),
-            fg_color="#1E293B",
-            button_color="#334155",
-            button_hover_color="#475569",
+            fg_color=("#FFFFFF", "#1E293B"),
+            button_color=("#CBD5E1", "#334155"),
+            button_hover_color=("#94A3B8", "#475569"),
+            text_color=("#0F172A", "#FFFFFF"),
             height=28,
             command=ctk.set_appearance_mode
         )
@@ -258,15 +266,15 @@ class MdDocModernApp(ctk.CTk):
         # Update Nav Active Colors
         self.btn_nav_doc.configure(
             fg_color="#2563EB" if name == "doc" else "transparent",
-            text_color="#FFFFFF" if name == "doc" else "#94A3B8"
+            text_color=("#FFFFFF", "#FFFFFF") if name == "doc" else ("#334155", "#94A3B8")
         )
         self.btn_nav_theme.configure(
             fg_color="#2563EB" if name == "theme" else "transparent",
-            text_color="#FFFFFF" if name == "theme" else "#94A3B8"
+            text_color=("#FFFFFF", "#FFFFFF") if name == "theme" else ("#334155", "#94A3B8")
         )
         self.btn_nav_about.configure(
             fg_color="#2563EB" if name == "about" else "transparent",
-            text_color="#FFFFFF" if name == "about" else "#94A3B8"
+            text_color=("#FFFFFF", "#FFFFFF") if name == "about" else ("#334155", "#94A3B8")
         )
 
         self.view_doc.grid_forget()
@@ -285,14 +293,20 @@ class MdDocModernApp(ctk.CTk):
     # ==========================================
     def _build_doc_view(self):
         # Header Toolbar Card
-        top_bar = ctk.CTkFrame(self.view_doc, corner_radius=10, fg_color="#1E293B")
+        top_bar = ctk.CTkFrame(
+            self.view_doc,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         top_bar.pack(fill="x", pady=(0, 10))
 
         lbl_file = ctk.CTkLabel(
             top_bar,
             text="Markdown:",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         )
         lbl_file.pack(side="left", padx=(14, 8), pady=10)
 
@@ -302,8 +316,9 @@ class MdDocModernApp(ctk.CTk):
             textvariable=self.var_input_file,
             placeholder_text="Select a .md file or write directly below...",
             font=ctk.CTkFont(family="Segoe UI", size=12),
-            fg_color="#0F172A",
-            border_color="#334155",
+            fg_color=("#F8FAFC", "#0A0F1A"),
+            border_color=("#CBD5E1", "#334155"),
+            text_color=("#0F172A", "#F8FAFC"),
             height=32
         )
         self.entry_input.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=10)
@@ -313,9 +328,9 @@ class MdDocModernApp(ctk.CTk):
             text="📂 Open",
             width=70,
             height=32,
-            fg_color="#2563EB",
-            hover_color="#1D4ED8",
-            text_color="#FFFFFF",
+            fg_color=("#2563EB", "#2563EB"),
+            hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#FFFFFF", "#FFFFFF"),
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             command=self._browse_input_file
         )
@@ -326,9 +341,9 @@ class MdDocModernApp(ctk.CTk):
             text="📋 Sample",
             width=75,
             height=32,
-            fg_color="#334155",
-            hover_color="#475569",
-            text_color="#F8FAFC",
+            fg_color=("#E2E8F0", "#1E293B"),
+            hover_color=("#CBD5E1", "#334155"),
+            text_color=("#0F172A", "#F8FAFC"),
             font=ctk.CTkFont(family="Segoe UI", size=12),
             command=self._load_sample
         )
@@ -339,9 +354,9 @@ class MdDocModernApp(ctk.CTk):
             text="🗑️ Clear",
             width=65,
             height=32,
-            fg_color="#475569",
-            hover_color="#64748B",
-            text_color="#F8FAFC",
+            fg_color=("#E2E8F0", "#334155"),
+            hover_color=("#CBD5E1", "#475569"),
+            text_color=("#0F172A", "#F8FAFC"),
             font=ctk.CTkFont(family="Segoe UI", size=12),
             command=self._clear_content
         )
@@ -352,17 +367,23 @@ class MdDocModernApp(ctk.CTk):
             self.view_doc,
             font=ctk.CTkFont(family="Consolas", size=12),
             corner_radius=10,
-            fg_color="#0F172A",
-            border_color="#334155",
+            fg_color=("#FFFFFF", "#0A0F1A"),
+            border_color=("#CBD5E1", "#1E293B"),
             border_width=1,
-            text_color="#F8FAFC",
+            text_color=("#0F172A", "#F8FAFC"),
             height=280
         )
         self.txt_editor.pack(fill="both", expand=True, pady=(0, 10))
         self.txt_editor.insert("1.0", SAMPLE_MD_TEXT)
 
         # Document Options & Metadata Card
-        opts_card = ctk.CTkFrame(self.view_doc, corner_radius=10, fg_color="#1E293B")
+        opts_card = ctk.CTkFrame(
+            self.view_doc,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         opts_card.pack(fill="x", pady=(0, 10))
 
         # Toggles Row
@@ -375,7 +396,8 @@ class MdDocModernApp(ctk.CTk):
             text="Cover Page",
             variable=self.var_cover,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            progress_color="#2563EB"
+            text_color=("#0F172A", "#FFFFFF"),
+            progress_color=("#2563EB", "#2563EB")
         )
         self.sw_cover.pack(side="left", padx=(0, 20))
 
@@ -385,11 +407,17 @@ class MdDocModernApp(ctk.CTk):
             text="Table of Contents",
             variable=self.var_toc,
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            progress_color="#2563EB"
+            text_color=("#0F172A", "#FFFFFF"),
+            progress_color=("#2563EB", "#2563EB")
         )
         self.sw_toc.pack(side="left", padx=(0, 20))
 
-        lbl_psize = ctk.CTkLabel(tog_row, text="Page Size:", font=ctk.CTkFont(family="Segoe UI", size=12), text_color="#94A3B8")
+        lbl_psize = ctk.CTkLabel(
+            tog_row,
+            text="Page Size:",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color=("#475569", "#94A3B8")
+        )
         lbl_psize.pack(side="left", padx=(10, 6))
 
         self.var_pagesize = tk.StringVar(value="A4")
@@ -397,9 +425,10 @@ class MdDocModernApp(ctk.CTk):
             tog_row,
             values=["A4", "Letter"],
             variable=self.var_pagesize,
-            fg_color="#0F172A",
-            button_color="#2563EB",
-            button_hover_color="#1D4ED8",
+            fg_color=("#F1F5F9", "#0A0F1A"),
+            button_color=("#2563EB", "#2563EB"),
+            button_hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#0F172A", "#FFFFFF"),
             width=90,
             height=28
         )
@@ -410,24 +439,24 @@ class MdDocModernApp(ctk.CTk):
         meta_grid.pack(fill="x", padx=14, pady=(0, 12))
         meta_grid.grid_columnconfigure((1, 3), weight=1)
 
-        ctk.CTkLabel(meta_grid, text="Title:", font=ctk.CTkFont(family="Segoe UI", size=11), text_color="#94A3B8").grid(row=0, column=0, sticky="w", padx=(0, 6), pady=2)
+        ctk.CTkLabel(meta_grid, text="Title:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#475569", "#94A3B8")).grid(row=0, column=0, sticky="w", padx=(0, 6), pady=2)
         self.var_title = tk.StringVar()
-        self.entry_title = ctk.CTkEntry(meta_grid, textvariable=self.var_title, placeholder_text="Document Title", fg_color="#0F172A", border_color="#334155", height=28)
+        self.entry_title = ctk.CTkEntry(meta_grid, textvariable=self.var_title, placeholder_text="Document Title", fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#334155"), text_color=("#0F172A", "#F8FAFC"), height=28)
         self.entry_title.grid(row=0, column=1, sticky="ew", padx=(0, 14), pady=2)
 
-        ctk.CTkLabel(meta_grid, text="Author:", font=ctk.CTkFont(family="Segoe UI", size=11), text_color="#94A3B8").grid(row=0, column=2, sticky="w", padx=(0, 6), pady=2)
+        ctk.CTkLabel(meta_grid, text="Author:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#475569", "#94A3B8")).grid(row=0, column=2, sticky="w", padx=(0, 6), pady=2)
         self.var_author = tk.StringVar()
-        self.entry_author = ctk.CTkEntry(meta_grid, textvariable=self.var_author, placeholder_text="e.g. Engineering Team", fg_color="#0F172A", border_color="#334155", height=28)
+        self.entry_author = ctk.CTkEntry(meta_grid, textvariable=self.var_author, placeholder_text="e.g. Engineering Team", fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#334155"), text_color=("#0F172A", "#F8FAFC"), height=28)
         self.entry_author.grid(row=0, column=3, sticky="ew", pady=2)
 
-        ctk.CTkLabel(meta_grid, text="Subtitle:", font=ctk.CTkFont(family="Segoe UI", size=11), text_color="#94A3B8").grid(row=1, column=0, sticky="w", padx=(0, 6), pady=2)
+        ctk.CTkLabel(meta_grid, text="Subtitle:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#475569", "#94A3B8")).grid(row=1, column=0, sticky="w", padx=(0, 6), pady=2)
         self.var_subtitle = tk.StringVar()
-        self.entry_subtitle = ctk.CTkEntry(meta_grid, textvariable=self.var_subtitle, placeholder_text="Optional Subtitle", fg_color="#0F172A", border_color="#334155", height=28)
+        self.entry_subtitle = ctk.CTkEntry(meta_grid, textvariable=self.var_subtitle, placeholder_text="Optional Subtitle", fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#334155"), text_color=("#0F172A", "#F8FAFC"), height=28)
         self.entry_subtitle.grid(row=1, column=1, sticky="ew", padx=(0, 14), pady=2)
 
-        ctk.CTkLabel(meta_grid, text="Date:", font=ctk.CTkFont(family="Segoe UI", size=11), text_color="#94A3B8").grid(row=1, column=2, sticky="w", padx=(0, 6), pady=2)
+        ctk.CTkLabel(meta_grid, text="Date:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#475569", "#94A3B8")).grid(row=1, column=2, sticky="w", padx=(0, 6), pady=2)
         self.var_date = tk.StringVar()
-        self.entry_date = ctk.CTkEntry(meta_grid, textvariable=self.var_date, placeholder_text="Optional Date", fg_color="#0F172A", border_color="#334155", height=28)
+        self.entry_date = ctk.CTkEntry(meta_grid, textvariable=self.var_date, placeholder_text="Optional Date", fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#334155"), text_color=("#0F172A", "#F8FAFC"), height=28)
         self.entry_date.grid(row=1, column=3, sticky="ew", pady=2)
 
         # Primary Action CTA Button & Status
@@ -440,9 +469,9 @@ class MdDocModernApp(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
             height=46,
             corner_radius=8,
-            fg_color="#2563EB",
-            hover_color="#1D4ED8",
-            text_color="#FFFFFF",
+            fg_color=("#2563EB", "#2563EB"),
+            hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#FFFFFF", "#FFFFFF"),
             command=self._start_conversion
         )
         self.btn_convert.pack(fill="x")
@@ -452,7 +481,7 @@ class MdDocModernApp(ctk.CTk):
             action_box,
             textvariable=self.var_status,
             font=ctk.CTkFont(family="Segoe UI", size=12),
-            text_color="#94A3B8"
+            text_color=("#475569", "#94A3B8")
         )
         self.lbl_status.pack(anchor="w", pady=(6, 0))
 
@@ -465,9 +494,9 @@ class MdDocModernApp(ctk.CTk):
             text="📂 Open in Word",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             height=32,
-            fg_color="#10B981",
-            hover_color="#059669",
-            text_color="#FFFFFF",
+            fg_color=("#10B981", "#10B981"),
+            hover_color=("#059669", "#059669"),
+            text_color=("#FFFFFF", "#FFFFFF"),
             command=self._open_in_word
         )
         self.btn_open_word.pack(side="left", padx=(0, 10))
@@ -477,9 +506,9 @@ class MdDocModernApp(ctk.CTk):
             text="📁 Show in File Explorer",
             font=ctk.CTkFont(family="Segoe UI", size=12),
             height=32,
-            fg_color="#334155",
-            hover_color="#475569",
-            text_color="#F8FAFC",
+            fg_color=("#E2E8F0", "#334155"),
+            hover_color=("#CBD5E1", "#475569"),
+            text_color=("#0F172A", "#F8FAFC"),
             command=self._open_in_explorer
         )
         self.btn_open_dir.pack(side="left")
@@ -491,20 +520,31 @@ class MdDocModernApp(ctk.CTk):
     # ==========================================
     def _build_theme_view(self):
         # 1. Curated Themes Card
-        curated_card = ctk.CTkFrame(self.view_theme, corner_radius=10, fg_color="#1E293B")
+        curated_card = ctk.CTkFrame(
+            self.view_theme,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         curated_card.pack(fill="x", pady=(0, 14))
 
         ctk.CTkLabel(
             curated_card,
             text="🎨 Curated Design Palettes",
             font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         ).pack(anchor="w", padx=16, pady=(14, 6))
 
         t_row = ctk.CTkFrame(curated_card, fg_color="transparent")
         t_row.pack(fill="x", padx=16, pady=(0, 6))
 
-        ctk.CTkLabel(t_row, text="Select Theme:", font=ctk.CTkFont(family="Segoe UI", size=13), text_color="#CBD5E1").pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(
+            t_row,
+            text="Select Theme:",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            text_color=("#475569", "#CBD5E1")
+        ).pack(side="left", padx=(0, 10))
 
         self.var_theme = tk.StringVar(value="modern")
         self.opt_theme = ctk.CTkOptionMenu(
@@ -512,9 +552,10 @@ class MdDocModernApp(ctk.CTk):
             values=["modern", "nordic", "academic", "forest", "corporate", "custom"],
             variable=self.var_theme,
             font=ctk.CTkFont(family="Segoe UI", size=13),
-            fg_color="#0F172A",
-            button_color="#2563EB",
-            button_hover_color="#1D4ED8",
+            fg_color=("#F1F5F9", "#0A0F1A"),
+            button_color=("#2563EB", "#2563EB"),
+            button_hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#0F172A", "#FFFFFF"),
             width=200,
             command=self._on_theme_selection
         )
@@ -524,26 +565,37 @@ class MdDocModernApp(ctk.CTk):
             curated_card,
             text="Modern Tech — Cambria/Calibri typography, Deep navy headings, teal accents.",
             font=ctk.CTkFont(family="Segoe UI", size=12, slant="italic"),
-            text_color="#94A3B8"
+            text_color=("#475569", "#94A3B8")
         )
         self.lbl_theme_desc.pack(anchor="w", padx=16, pady=(0, 14))
 
         # 2. Custom Palette Designer Card
-        custom_card = ctk.CTkFrame(self.view_theme, corner_radius=10, fg_color="#1E293B")
+        custom_card = ctk.CTkFrame(
+            self.view_theme,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         custom_card.pack(fill="both", expand=True)
 
         ctk.CTkLabel(
             custom_card,
             text="✨ Custom Theme & Typography Designer",
             font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         ).pack(anchor="w", padx=16, pady=(14, 10))
 
         # Quick Presets
         preset_row = ctk.CTkFrame(custom_card, fg_color="transparent")
         preset_row.pack(fill="x", padx=16, pady=(0, 14))
 
-        ctk.CTkLabel(preset_row, text="Quick Presets:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(
+            preset_row,
+            text="Quick Presets:",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#475569", "#CBD5E1")
+        ).pack(side="left", padx=(0, 10))
 
         presets = [
             ("💜 Violet", "violet", "#7C3AED"),
@@ -571,45 +623,48 @@ class MdDocModernApp(ctk.CTk):
         pickers_grid.grid_columnconfigure((0, 1, 2), weight=1)
 
         # Primary
-        f_p = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color="#0F172A")
+        f_p = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
         f_p.grid(row=0, column=0, sticky="ew", padx=(0, 8))
-        ctk.CTkLabel(f_p, text="Primary Color (H1)", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=10, pady=(8, 4))
+        ctk.CTkLabel(f_p, text="Primary Color (H1)", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#0284C7", "#38BDF8")).pack(anchor="w", padx=10, pady=(8, 4))
         self.btn_swatch_p = ctk.CTkButton(
             f_p,
             text=self.custom_primary,
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             fg_color=self.custom_primary,
             hover_color=self.custom_primary,
+            text_color="#FFFFFF",
             height=34,
             command=lambda: self._pick_color('primary')
         )
         self.btn_swatch_p.pack(fill="x", padx=10, pady=(0, 10))
 
         # Secondary
-        f_s = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color="#0F172A")
+        f_s = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
         f_s.grid(row=0, column=1, sticky="ew", padx=4)
-        ctk.CTkLabel(f_s, text="Secondary (Accents)", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=10, pady=(8, 4))
+        ctk.CTkLabel(f_s, text="Secondary (Accents)", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#0284C7", "#38BDF8")).pack(anchor="w", padx=10, pady=(8, 4))
         self.btn_swatch_s = ctk.CTkButton(
             f_s,
             text=self.custom_secondary,
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             fg_color=self.custom_secondary,
             hover_color=self.custom_secondary,
+            text_color="#FFFFFF",
             height=34,
             command=lambda: self._pick_color('secondary')
         )
         self.btn_swatch_s.pack(fill="x", padx=10, pady=(0, 10))
 
         # Accent
-        f_a = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color="#0F172A")
+        f_a = ctk.CTkFrame(pickers_grid, corner_radius=8, fg_color=("#F8FAFC", "#0A0F1A"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
         f_a.grid(row=0, column=2, sticky="ew", padx=(8, 0))
-        ctk.CTkLabel(f_a, text="Highlight Color", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=10, pady=(8, 4))
+        ctk.CTkLabel(f_a, text="Highlight Color", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=("#0284C7", "#38BDF8")).pack(anchor="w", padx=10, pady=(8, 4))
         self.btn_swatch_a = ctk.CTkButton(
             f_a,
             text=self.custom_accent,
             font=ctk.CTkFont(family="Consolas", size=12, weight="bold"),
             fg_color=self.custom_accent,
             hover_color=self.custom_accent,
+            text_color="#FFFFFF",
             height=34,
             command=lambda: self._pick_color('accent')
         )
@@ -620,28 +675,30 @@ class MdDocModernApp(ctk.CTk):
         font_box.pack(fill="x", padx=16, pady=(0, 16))
         font_box.grid_columnconfigure((1, 3), weight=1)
 
-        ctk.CTkLabel(font_box, text="Heading Font:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=6)
+        ctk.CTkLabel(font_box, text="Heading Font:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=("#0F172A", "#CBD5E1")).grid(row=0, column=0, sticky="w", padx=(0, 8), pady=6)
         self.var_font_head = tk.StringVar(value="Georgia")
         self.opt_font_head = ctk.CTkOptionMenu(
             font_box,
             values=["Georgia", "Cambria", "Segoe UI", "Arial", "Garamond", "Trebuchet MS", "Times New Roman"],
             variable=self.var_font_head,
-            fg_color="#0F172A",
-            button_color="#2563EB",
-            button_hover_color="#1D4ED8",
+            fg_color=("#F1F5F9", "#0A0F1A"),
+            button_color=("#2563EB", "#2563EB"),
+            button_hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#0F172A", "#FFFFFF"),
             height=30
         )
         self.opt_font_head.grid(row=0, column=1, sticky="ew", padx=(0, 16), pady=6)
 
-        ctk.CTkLabel(font_box, text="Body Font:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").grid(row=0, column=2, sticky="w", padx=(0, 8), pady=6)
+        ctk.CTkLabel(font_box, text="Body Font:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=("#0F172A", "#CBD5E1")).grid(row=0, column=2, sticky="w", padx=(0, 8), pady=6)
         self.var_font_body = tk.StringVar(value="Calibri")
         self.opt_font_body = ctk.CTkOptionMenu(
             font_box,
             values=["Calibri", "Segoe UI", "Georgia", "Arial", "Garamond", "Times New Roman"],
             variable=self.var_font_body,
-            fg_color="#0F172A",
-            button_color="#2563EB",
-            button_hover_color="#1D4ED8",
+            fg_color=("#F1F5F9", "#0A0F1A"),
+            button_color=("#2563EB", "#2563EB"),
+            button_hover_color=("#1D4ED8", "#1D4ED8"),
+            text_color=("#0F172A", "#FFFFFF"),
             height=30
         )
         self.opt_font_body.grid(row=0, column=3, sticky="ew", pady=6)
@@ -651,28 +708,34 @@ class MdDocModernApp(ctk.CTk):
     # ==========================================
     def _build_about_view(self):
         # Developer Card
-        dev_card = ctk.CTkFrame(self.view_about, corner_radius=12, fg_color="#090E17")
+        dev_card = ctk.CTkFrame(
+            self.view_about,
+            corner_radius=12,
+            fg_color=("#FFFFFF", "#070B12"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         dev_card.pack(fill="x", pady=(0, 16))
 
         ctk.CTkLabel(
             dev_card,
             text="👨‍💻 Developed By",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color="#38BDF8"
+            text_color=("#0284C7", "#38BDF8")
         ).pack(anchor="w", padx=20, pady=(16, 4))
 
         ctk.CTkLabel(
             dev_card,
             text="Iliass Wakkar",
             font=ctk.CTkFont(family="Segoe UI", size=22, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         ).pack(anchor="w", padx=20)
 
         ctk.CTkLabel(
             dev_card,
             text="SAP Technical Engineer (ABAP Specialist) • Full-Stack Developer",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color="#38BDF8"
+            text_color=("#0284C7", "#38BDF8")
         ).pack(anchor="w", padx=20, pady=(2, 8))
 
         desc = (
@@ -683,7 +746,7 @@ class MdDocModernApp(ctk.CTk):
             dev_card,
             text=desc,
             font=ctk.CTkFont(family="Segoe UI", size=12),
-            text_color="#CBD5E1",
+            text_color=("#334155", "#CBD5E1"),
             wraplength=600,
             justify="left"
         ).pack(anchor="w", padx=20, pady=(0, 12))
@@ -693,8 +756,8 @@ class MdDocModernApp(ctk.CTk):
             dev_card,
             text="🌐 100% Free & Open Source for Public Use",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
-            text_color="#4ADE80",
-            fg_color="#1E293B",
+            text_color=("#16A34A", "#4ADE80"),
+            fg_color=("#DCFCE7", "#1E293B"),
             corner_radius=6,
             padx=10,
             pady=4
@@ -702,14 +765,20 @@ class MdDocModernApp(ctk.CTk):
         badge.pack(anchor="w", padx=20, pady=(0, 16))
 
         # Connect Links Card
-        links_card = ctk.CTkFrame(self.view_about, corner_radius=12, fg_color="#1E293B")
+        links_card = ctk.CTkFrame(
+            self.view_about,
+            corner_radius=12,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
         links_card.pack(fill="both", expand=True)
 
         ctk.CTkLabel(
             links_card,
             text="📬 Connect & Resources",
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            text_color="#FFFFFF"
+            text_color=("#0F172A", "#FFFFFF")
         ).pack(anchor="w", padx=16, pady=(16, 12))
 
         links = [

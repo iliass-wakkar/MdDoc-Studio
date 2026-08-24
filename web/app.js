@@ -102,14 +102,164 @@ function initWorker() {
     };
 }
 
+// Theme Styles Specification for Live Preview
+const THEME_STYLES = {
+    modern: {
+        fontHeading: "Cambria, Georgia, serif",
+        fontBody: "Calibri, -apple-system, sans-serif",
+        h1: "#1E3A5F",
+        h2: "#2E5A7E",
+        h3: "#4A7C94",
+        secondary: "#2E8B8B",
+        text: "#2D3748",
+        quoteBorder: "#2E8B8B",
+        quoteBg: "#F0FDF4",
+        quoteText: "#334155",
+        tableHeaderBg: "#1E3A5F",
+        tableHeaderText: "#FFFFFF",
+        tableBorder: "#CBD5E1",
+        tableRowAlt: "#F8FAFC",
+        codeBg: "#F8FAFC",
+        codeBorder: "#CBD5E1",
+        link: "#0284C7"
+    },
+    nordic: {
+        fontHeading: "'Segoe UI Semibold', 'Segoe UI', sans-serif",
+        fontBody: "'Segoe UI', -apple-system, sans-serif",
+        h1: "#2E3440",
+        h2: "#3B4252",
+        h3: "#434C5E",
+        secondary: "#5E81AC",
+        text: "#3B4252",
+        quoteBorder: "#5E81AC",
+        quoteBg: "#F4F6F9",
+        quoteText: "#2E3440",
+        tableHeaderBg: "#2E3440",
+        tableHeaderText: "#ECEFF4",
+        tableBorder: "#D8DEE9",
+        tableRowAlt: "#F4F6F9",
+        codeBg: "#ECEFF4",
+        codeBorder: "#D8DEE9",
+        link: "#5E81AC"
+    },
+    academic: {
+        fontHeading: "Georgia, serif",
+        fontBody: "Georgia, serif",
+        h1: "#1A365D",
+        h2: "#2C5282",
+        h3: "#2B6CB0",
+        secondary: "#744210",
+        text: "#1A202C",
+        quoteBorder: "#744210",
+        quoteBg: "#FFFAF0",
+        quoteText: "#2D3748",
+        tableHeaderBg: "#1A365D",
+        tableHeaderText: "#FFFFFF",
+        tableBorder: "#CBD5E0",
+        tableRowAlt: "#F7FAFC",
+        codeBg: "#FFFAF0",
+        codeBorder: "#E2E8F0",
+        link: "#2B6CB0"
+    },
+    forest: {
+        fontHeading: "Cambria, Georgia, serif",
+        fontBody: "Calibri, -apple-system, sans-serif",
+        h1: "#1C4532",
+        h2: "#276749",
+        h3: "#2F855A",
+        secondary: "#2F855A",
+        text: "#1A202C",
+        quoteBorder: "#2F855A",
+        quoteBg: "#F0FFF4",
+        quoteText: "#22543D",
+        tableHeaderBg: "#1C4532",
+        tableHeaderText: "#FFFFFF",
+        tableBorder: "#C6F6D5",
+        tableRowAlt: "#F7FAFC",
+        codeBg: "#F0FFF4",
+        codeBorder: "#C6F6D5",
+        link: "#276749"
+    },
+    corporate: {
+        fontHeading: "Arial, sans-serif",
+        fontBody: "Arial, sans-serif",
+        h1: "#0F2942",
+        h2: "#184E77",
+        h3: "#1E6091",
+        secondary: "#1E6091",
+        text: "#1F2937",
+        quoteBorder: "#1E6091",
+        quoteBg: "#F0F7FF",
+        quoteText: "#1F2937",
+        tableHeaderBg: "#0F2942",
+        tableHeaderText: "#FFFFFF",
+        tableBorder: "#D1D5DB",
+        tableRowAlt: "#F9FAFB",
+        codeBg: "#F9FAFB",
+        codeBorder: "#E5E7EB",
+        link: "#1E6091"
+    }
+};
+
+// Apply CSS Variables to Live Preview
+function applyThemeToPreview(themeName) {
+    const t = THEME_STYLES[themeName] || THEME_STYLES.modern;
+    const p = previewContent;
+    p.style.setProperty('--theme-font-heading', t.fontHeading);
+    p.style.setProperty('--theme-font-body', t.fontBody);
+    p.style.setProperty('--theme-h1', t.h1);
+    p.style.setProperty('--theme-h2', t.h2);
+    p.style.setProperty('--theme-h3', t.h3);
+    p.style.setProperty('--theme-secondary', t.secondary);
+    p.style.setProperty('--theme-text', t.text);
+    p.style.setProperty('--theme-quote-border', t.quoteBorder);
+    p.style.setProperty('--theme-quote-bg', t.quoteBg);
+    p.style.setProperty('--theme-quote-text', t.quoteText);
+    p.style.setProperty('--theme-table-header-bg', t.tableHeaderBg);
+    p.style.setProperty('--theme-table-header-text', t.tableHeaderText);
+    p.style.setProperty('--theme-table-border', t.tableBorder);
+    p.style.setProperty('--theme-table-row-alt', t.tableRowAlt);
+    p.style.setProperty('--theme-code-bg', t.codeBg);
+    p.style.setProperty('--theme-code-border', t.codeBorder);
+    p.style.setProperty('--theme-link', t.link);
+}
+
 // Live Markdown Preview Update
 function updatePreview() {
     const raw = mdInput.value;
     // Strip YAML frontmatter for preview rendering if present
     const cleanMd = raw.replace(/^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*[\r\n]+/, '');
-    if (window.marked) {
-        previewContent.innerHTML = marked.parse(cleanMd);
+
+    let html = "";
+
+    // If cover page toggle is enabled, prepend styled visual cover banner
+    if (chkCover.checked) {
+        const titleText = inpTitle.value.trim() || "Document Title";
+        const subText = inpSubtitle.value.trim();
+        const authText = inpAuthor.value.trim();
+
+        html += `
+        <div class="preview-cover-banner">
+            <div class="cover-accent-line">━━━━━━━━━━━━━━━</div>
+            <div class="cover-title">${escapeHtml(titleText)}</div>
+            ${subText ? `<div class="cover-subtitle">${escapeHtml(subText)}</div>` : ''}
+            <div class="cover-accent-line" style="font-size:10px;">─────────────────────</div>
+            ${authText ? `<div class="cover-meta">By ${escapeHtml(authText)}</div>` : ''}
+            <div class="cover-accent-line">━━━━━━━━━━━━━━━</div>
+        </div>
+        `;
     }
+
+    if (window.marked) {
+        html += marked.parse(cleanMd);
+    }
+
+    previewContent.innerHTML = html;
+    applyThemeToPreview(selectedTheme);
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 // Frontmatter Auto-Extractor
@@ -140,6 +290,8 @@ function selectTheme(themeName) {
         document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
         target.classList.add('active');
         selectedTheme = themeName;
+        applyThemeToPreview(themeName);
+        updatePreview();
     }
 }
 
@@ -308,10 +460,20 @@ document.addEventListener('DOMContentLoaded', () => {
         debounceTimer = setTimeout(updatePreview, 300);
     });
 
+    // Auto-update preview when metadata or toggles change
+    [inpTitle, inpSubtitle, inpAuthor].forEach(el => {
+        el.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(updatePreview, 150);
+        });
+    });
+    chkCover.addEventListener('change', updatePreview);
+
     // Load default sample initially
     mdInput.value = SAMPLE_MARKDOWN;
     inpTitle.value = "MdDoc Architecture & Specification";
     inpSubtitle.value = "High-Performance Markdown to Publication-Quality Word DOCX";
     inpAuthor.value = "Engineering Team";
+    selectTheme("modern");
     updatePreview();
 });

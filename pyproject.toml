@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mddoc"
+version = "1.0.0"
+description = "Markdown to publication-quality Microsoft Word DOCX converter with Kimi-inspired design heuristics"
+readme = "README.md"
+authors = [{ name = "Ilias", email = "ilias@example.com" }]
+license = { text = "MIT" }
+requires-python = ">=3.8"
+dependencies = [
+    "python-docx>=1.0.0",
+    "markdown>=3.5.0",
+    "beautifulsoup4>=4.12.0",
+    "pyyaml>=6.0.0"
+]
+
+[project.scripts]
+mddoc = "mddoc.cli:main"

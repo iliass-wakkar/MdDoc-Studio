@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MdDoc Studio — Markdown to Publication-Quality Word DOCX</title>
+    <meta name="description" content="Free, 100% client-side Markdown to beautifully styled Microsoft Word (.docx) converter powered by WebAssembly. Zero data leaves your device.">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <!-- Marked.js for fast client-side live preview -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <img src="assets/icon.png" alt="MdDoc Logo" width="32" height="32" onerror="this.style.display='none'">
+                    <span class="fallback-logo">📄</span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="brand-title">MdDoc Studio</h1>
+                    <span class="brand-tagline">Markdown to Publication-Quality DOCX</span>
+                </div>
+            </div>
+
+            <div class="header-badges">
+                <div id="engine-status" class="status-badge loading">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Initializing WebAssembly Engine...</span>
+                </div>
+                <span class="privacy-badge">🔒 100% Client-Side & Private</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace-container">
+        <div class="workspace-grid">
+            
+            <!-- Left Pane: Editor & Live Preview -->
+            <section class="editor-pane">
+                <div class="card editor-card">
+                    <div class="tab-header">
+                        <div class="tabs">
+                            <button class="tab-btn active" id="tab-editor-btn" data-tab="editor">
+                                <span>✏️ Markdown Editor</span>
+                            </button>
+                            <button class="tab-btn" id="tab-preview-btn" data-tab="preview">
+                                <span>👁️ Live Preview</span>
+                            </button>
+                        </div>
+
+                        <div class="editor-actions">
+                            <button class="action-btn" id="btn-sample" title="Load sample document">📋 Sample</button>
+                            <button class="action-btn" id="btn-clear" title="Clear editor">🗑️ Clear</button>
+                            <label class="action-btn file-upload-btn" title="Open .md file from device">
+                                📂 Open File
+                                <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none;">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Drop Zone Banner -->
+                    <div class="drop-banner" id="drop-banner">
+                        <span class="drop-icon">📥</span> Drag & drop any <code>.md</code> file here to load
+                    </div>
+
+                    <!-- Tab 1: Editor View -->
+                    <div class="tab-content active" id="editor-tab-view">
+                        <textarea id="markdown-input" spellcheck="false" placeholder="Write or paste your Markdown here..."></textarea>
+                    </div>
+
+                    <!-- Tab 2: HTML Live Preview View -->
+                    <div class="tab-content" id="preview-tab-view">
+                        <div class="preview-container markdown-body" id="preview-content"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Pane: Design Theme & Document Controls -->
+            <aside class="controls-pane">
+                
+                <!-- Theme Selector Card -->
+                <div class="card theme-card-section">
+                    <h2 class="card-heading">
+                        <span>🎨</span> Design Theme
+                    </h2>
+                    
+                    <div class="theme-grid">
+                        <div class="theme-option active" data-theme="modern">
+                            <div class="theme-info">
+                                <span class="theme-name">Modern Tech</span>
+                                <span class="theme-fonts">Cambria • Deep Navy & Teal</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" style="background:#1E3A5F;"></span>
+                                <span class="swatch" style="background:#2E8B8B;"></span>
+                                <span class="swatch" style="background:#E07A5F;"></span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option" data-theme="nordic">
+                            <div class="theme-info">
+                                <span class="theme-name">Nordic Minimal</span>
+                                <span class="theme-fonts">Segoe UI • Charcoal & Polar Blue</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" style="background:#2E3440;"></span>
+                                <span class="swatch" style="background:#5E81AC;"></span>
+                                <span class="swatch" style="background:#BF616A;"></span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option" data-theme="academic">
+                            <div class="theme-info">
+                                <span class="theme-name">Academic Classic</span>
+                                <span class="theme-fonts">Georgia • Oxford Blue & Amber</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" style="background:#1A365D;"></span>
+                                <span class="swatch" style="background:#744210;"></span>
+                                <span class="swatch" style="background:#C05621;"></span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option" data-theme="forest">
+                            <div class="theme-info">
+                                <span class="theme-name">Forest Moss</span>
+                                <span class="theme-fonts">Cambria • Evergreen & Sage</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" style="background:#1C4532;"></span>
+                                <span class="swatch" style="background:#2F855A;"></span>
+                                <span class="swatch" style="background:#D69E2E;"></span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option" data-theme="corporate">
+                            <div class="theme-info">
+                                <span class="theme-name">Corporate Blue</span>
+                                <span class="theme-fonts">Arial • Executive Navy & Cyan</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" style="background:#0F2942;"></span>
+                                <span class="swatch" style="background:#1E6091;"></span>
+                                <span class="swatch" style="background:#00A896;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document Settings Card -->
+                <div class="card settings-card">
+                    <h2 class="card-heading">
+                        <span>⚙️</span> Layout & Metadata
+                    </h2>
+
+                    <div class="switch-group">
+                        <label class="toggle-switch">
+                            <span>Cover Page</span>
+                            <input type="checkbox" id="chk-cover" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <label class="toggle-switch">
+                            <span>Table of Contents</span>
+                            <input type="checkbox" id="chk-toc" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="field-label" for="sel-pagesize">Page Size</label>
+                        <select id="sel-pagesize" class="field-input">
+                            <option value="A4" selected>A4 (Standard)</option>
+                            <option value="Letter">US Letter</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <label class="field-label" for="meta-title">Document Title</label>
+                        <input type="text" id="meta-title" class="field-input" placeholder="Auto-detected from Markdown">
+                    </div>
+
+                    <div class="form-row">
+                        <label class="field-label" for="meta-author">Author</label>
+                        <input type="text" id="meta-author" class="field-input" placeholder="e.g. Engineering Team">
+                    </div>
+
+                    <div class="form-row">
+                        <label class="field-label" for="meta-subtitle">Subtitle</label>
+                        <input type="text" id="meta-subtitle" class="field-input" placeholder="Optional subtitle">
+                    </div>
+                </div>
+
+                <!-- Convert Action Button -->
+                <div class="action-card">
+                    <button class="btn-export" id="btn-export">
+                        <span class="btn-icon">✨</span>
+                        <span id="btn-text">Export to Word (.docx)</span>
+                    </button>
+                    <div id="status-toast" class="status-toast"></div>
+                </div>
+
+                <div class="privacy-note">
+                    ⚡ <strong>Zero Cloud Calls:</strong> Documents are converted 100% locally in your browser using WebAssembly. No files ever touch an external server.
+                </div>
+
+            </aside>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <span><strong>MdDoc Studio</strong> • Open Source Markdown to DOCX Converter</span>
+            <span>Free & Unlimited • Runs on Cloudflare Pages</span>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

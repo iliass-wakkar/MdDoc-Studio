@@ -667,27 +667,38 @@ class MarkdownToDocxConverter:
 
 
 def convert_markdown_to_docx(
-    input_path: str,
+    input_path: Optional[str] = None,
     output_path: Optional[str] = None,
     theme_name: str = "modern",
+    custom_theme: Optional[dict] = None,
     title: Optional[str] = None,
     subtitle: Optional[str] = None,
     author: Optional[str] = None,
     date: Optional[str] = None,
     show_cover: bool = True,
     show_toc: bool = True,
-    page_size: str = "A4"
+    page_size: str = "A4",
+    md_content: Optional[str] = None
 ) -> str:
-    """Convenience helper function to convert markdown file to docx."""
-    with open(input_path, 'r', encoding='utf-8') as f:
-        md_text = f.read()
+    """Convenience helper function to convert markdown file or text to docx."""
+    if md_content is None:
+        if input_path is None:
+            raise ValueError("Either input_path or md_content must be provided.")
+        with open(input_path, 'r', encoding='utf-8') as f:
+            md_text = f.read()
+    else:
+        md_text = md_content
 
     if output_path is None:
-        base = os.path.splitext(input_path)[0]
-        output_path = base + ".docx"
+        if input_path:
+            base = os.path.splitext(input_path)[0]
+            output_path = base + ".docx"
+        else:
+            output_path = "output.docx"
 
     converter = MarkdownToDocxConverter(
         theme_name=theme_name,
+        custom_theme=custom_theme,
         title=title,
         subtitle=subtitle,
         author=author,

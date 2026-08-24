@@ -149,6 +149,83 @@
                                 <span class="swatch" style="background:#00A896;"></span>
                             </div>
                         </div>
+
+                        <!-- Custom Palette Option -->
+                        <div class="theme-option" data-theme="custom">
+                            <div class="theme-info">
+                                <span class="theme-name">✨ Custom Palette</span>
+                                <span class="theme-fonts" id="custom-fonts-label">Custom Fonts & Colors</span>
+                            </div>
+                            <div class="color-palette">
+                                <span class="swatch" id="swatch-custom-p" style="background:#7C3AED;"></span>
+                                <span class="swatch" id="swatch-custom-s" style="background:#EC4899;"></span>
+                                <span class="swatch" id="swatch-custom-a" style="background:#F59E0B;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Custom Palette Controls -->
+                    <div id="custom-theme-panel" class="custom-theme-panel" style="display:none;">
+                        <div class="custom-panel-title">🎨 Custom Theme Designer</div>
+                        
+                        <div class="preset-chips">
+                            <button type="button" class="preset-btn" data-preset="violet">💜 Violet</button>
+                            <button type="button" class="preset-btn" data-preset="sunset">🌅 Sunset</button>
+                            <button type="button" class="preset-btn" data-preset="emerald">🍃 Emerald</button>
+                            <button type="button" class="preset-btn" data-preset="amber">☕ Amber</button>
+                        </div>
+
+                        <div class="color-pickers-row">
+                            <div class="color-picker-item">
+                                <label for="picker-primary">Primary (H1)</label>
+                                <div class="color-input-wrap">
+                                    <input type="color" id="picker-primary" value="#7C3AED">
+                                    <input type="text" id="hex-primary" value="#7C3AED" class="hex-text">
+                                </div>
+                            </div>
+
+                            <div class="color-picker-item">
+                                <label for="picker-secondary">Secondary (Accent)</label>
+                                <div class="color-input-wrap">
+                                    <input type="color" id="picker-secondary" value="#EC4899">
+                                    <input type="text" id="hex-secondary" value="#EC4899" class="hex-text">
+                                </div>
+                            </div>
+
+                            <div class="color-picker-item">
+                                <label for="picker-accent">Highlight</label>
+                                <div class="color-input-wrap">
+                                    <input type="color" id="picker-accent" value="#F59E0B">
+                                    <input type="text" id="hex-accent" value="#F59E0B" class="hex-text">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="font-selectors-row">
+                            <div class="form-row">
+                                <label class="field-label" for="sel-font-heading">Heading Font</label>
+                                <select id="sel-font-heading" class="field-input">
+                                    <option value="Georgia" selected>Georgia (Editorial Serif)</option>
+                                    <option value="Cambria">Cambria (Classic Serif)</option>
+                                    <option value="Segoe UI">Segoe UI (Modern Sans)</option>
+                                    <option value="Arial">Arial (Clean Sans)</option>
+                                    <option value="Garamond">Garamond (Traditional)</option>
+                                    <option value="Trebuchet MS">Trebuchet MS (Geometric)</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <label class="field-label" for="sel-font-body">Body Font</label>
+                                <select id="sel-font-body" class="field-input">
+                                    <option value="Calibri" selected>Calibri (Modern)</option>
+                                    <option value="Segoe UI">Segoe UI (Crisp Sans)</option>
+                                    <option value="Georgia">Georgia (Serif)</option>
+                                    <option value="Arial">Arial (Standard)</option>
+                                    <option value="Garamond">Garamond</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

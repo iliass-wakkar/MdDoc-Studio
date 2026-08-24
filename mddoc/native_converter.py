@@ -61,6 +61,7 @@ class MarkdownToDocxConverter:
     def __init__(
         self,
         theme_name: str = "modern",
+        custom_theme: Optional[Dict[str, Any]] = None,
         title: Optional[str] = None,
         subtitle: Optional[str] = None,
         author: Optional[str] = None,
@@ -69,8 +70,13 @@ class MarkdownToDocxConverter:
         show_toc: bool = True,
         page_size: str = "A4",
     ):
-        self.theme_name = theme_name
-        self.theme = get_theme(theme_name)
+        if custom_theme and isinstance(custom_theme, dict):
+            self.theme = custom_theme
+            self.theme_name = "custom"
+        else:
+            self.theme_name = theme_name
+            self.theme = get_theme(theme_name)
+
         self.title = title
         self.subtitle = subtitle
         self.author = author

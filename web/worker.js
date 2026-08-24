@@ -39,9 +39,10 @@ sys.path.insert(0, '/home/pyodide')
 
 from mddoc.native_converter import MarkdownToDocxConverter
 
-def convert_md_to_docx_bytes(md_text, theme_name="modern", title=None, subtitle=None, author=None, date=None, show_cover=True, show_toc=True, page_size="A4"):
+def convert_md_to_docx_bytes(md_text, theme_name="modern", custom_theme=None, title=None, subtitle=None, author=None, date=None, show_cover=True, show_toc=True, page_size="A4"):
     converter = MarkdownToDocxConverter(
         theme_name=theme_name,
+        custom_theme=custom_theme,
         title=title,
         subtitle=subtitle,
         author=author,
@@ -80,6 +81,7 @@ self.onmessage = async function (e) {
             const {
                 markdown,
                 theme = "modern",
+                custom_theme = null,
                 title = null,
                 subtitle = null,
                 author = null,
@@ -92,6 +94,7 @@ self.onmessage = async function (e) {
             // Pass variables into Python global scope safely
             pyodide.globals.set("_md_input", markdown);
             pyodide.globals.set("_theme_input", theme);
+            pyodide.globals.set("_custom_theme_input", custom_theme ? pyodide.toPy(custom_theme) : null);
             pyodide.globals.set("_title_input", title);
             pyodide.globals.set("_sub_input", subtitle);
             pyodide.globals.set("_author_input", author);
@@ -104,6 +107,7 @@ self.onmessage = async function (e) {
 convert_md_to_docx_bytes(
     _md_input,
     theme_name=_theme_input,
+    custom_theme=_custom_theme_input,
     title=_title_input,
     subtitle=_sub_input,
     author=_author_input,

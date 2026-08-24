@@ -194,3 +194,56 @@ def get_theme(theme_name: str) -> Dict[str, Any]:
     """Retrieve theme dict by name, falling back to 'modern'."""
     normalized = (theme_name or "modern").lower().strip()
     return THEMES.get(normalized, THEMES["modern"])
+
+
+def create_custom_theme(
+    primary: str = "1E3A5F",
+    secondary: str = "2E8B8B",
+    accent: str = "E07A5F",
+    font_heading: str = "Cambria",
+    font_body: str = "Calibri",
+    font_code: str = "Consolas",
+    bg_tint: str = "F0FDF4"
+) -> Dict[str, Any]:
+    """Generate a custom theme dictionary from user-specified colors and fonts."""
+    p = primary.lstrip('#')
+    s = secondary.lstrip('#')
+    a = accent.lstrip('#')
+    bg = bg_tint.lstrip('#')
+
+    return {
+        "name": "Custom Palette",
+        "description": "User customized color palette and typography.",
+        "font_heading": font_heading,
+        "font_body": font_body,
+        "font_code": font_code,
+        "primary": p,
+        "secondary": s,
+        "accent": a,
+        "heading1": p,
+        "heading2": p,
+        "heading3": s,
+        "heading4": s,
+        "text": "2D3748",
+        "light_text": "718096",
+        "border": "E2E8F0",
+        "code_bg": "F8FAFC",
+        "code_border": "CBD5E1",
+        "code_text": "0F172A",
+        "quote_border": s,
+        "quote_bg": bg,
+        "quote_text": "334155",
+        "table_header_bg": p,
+        "table_header_text": "FFFFFF",
+        "table_border": "CBD5E1",
+        "table_row_alt": "F8FAFC",
+        "link": s,
+        "hr_color": "CBD5E1",
+        "alerts": {
+            "NOTE": {"color": s, "bg": "F0F9FF", "title": "Note", "icon": "ℹ"},
+            "TIP": {"color": "10B981", "bg": "F0FDF4", "title": "Tip", "icon": "💡"},
+            "IMPORTANT": {"color": "8B5CF6", "bg": "F5F3FF", "title": "Important", "icon": "★"},
+            "WARNING": {"color": "F59E0B", "bg": "FFFBEB", "title": "Warning", "icon": "⚠"},
+            "CAUTION": {"color": "EF4444", "bg": "FEF2F2", "title": "Caution", "icon": "🛑"},
+        }
+    }

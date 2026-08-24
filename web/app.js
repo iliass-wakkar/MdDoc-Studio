@@ -1,6 +1,6 @@
 /**
  * MdDoc Studio Application JavaScript.
- * Coordinates UI, Live Preview, and WebAssembly Worker.
+ * Coordinates UI, Live Preview, and WebAssembly Worker with Custom Theme support.
  */
 
 // Default Sample Markdown
@@ -29,7 +29,7 @@ The engine applies strict visual design principles across fonts, colors, and lay
 | Feature | Capability | Status |
 |---|---|---|
 | **Client-Side WASM** | Runs 100% in your browser | Active |
-| **5 Curated Themes** | Modern, Nordic, Academic, Forest, Corporate | Included |
+| **5 Curated Themes + Custom** | Modern, Nordic, Academic, Forest, Corporate, Custom | Included |
 | **Cover Page Generator** | Clean typography & accent geometry | Enabled |
 | **Table Formatting** | Booktabs style with zebra striping | Enabled |
 | **GFM Admonitions** | Styled note & warning callout boxes | Supported |
@@ -40,8 +40,16 @@ The engine applies strict visual design principles across fonts, colors, and lay
 > This document was generated entirely in-browser using WebAssembly.
 
 > [!TIP]
-> Drag and drop any .md file directly onto this window to convert it instantly!
+> You can now pick your own custom colors, accents, and typography in the Custom Theme Designer!
 `;
+
+// Presets for Custom Theme
+const CUSTOM_PRESETS = {
+    violet: { primary: "#7C3AED", secondary: "#EC4899", accent: "#F59E0B", fontHeading: "Georgia", fontBody: "Calibri" },
+    sunset: { primary: "#EA580C", secondary: "#DB2777", accent: "#F59E0B", fontHeading: "Trebuchet MS", fontBody: "Segoe UI" },
+    emerald: { primary: "#059669", secondary: "#0D9488", accent: "#EAB308", fontHeading: "Cambria", fontBody: "Calibri" },
+    amber: { primary: "#B45309", secondary: "#D97706", accent: "#E11D48", fontHeading: "Georgia", fontBody: "Georgia" }
+};
 
 // Application State
 let selectedTheme = "modern";
@@ -65,13 +73,28 @@ const engineStatus = document.getElementById('engine-status');
 const statusText = document.getElementById('status-text');
 const statusToast = document.getElementById('status-toast');
 
-// Inputs
+// Metadata Inputs
 const inpTitle = document.getElementById('meta-title');
 const inpAuthor = document.getElementById('meta-author');
 const inpSubtitle = document.getElementById('meta-subtitle');
 const chkCover = document.getElementById('chk-cover');
 const chkToc = document.getElementById('chk-toc');
 const selPageSize = document.getElementById('sel-pagesize');
+
+// Custom Theme Controls
+const customThemePanel = document.getElementById('custom-theme-panel');
+const pickerPrimary = document.getElementById('picker-primary');
+const pickerSecondary = document.getElementById('picker-secondary');
+const pickerAccent = document.getElementById('picker-accent');
+const hexPrimary = document.getElementById('hex-primary');
+const hexSecondary = document.getElementById('hex-secondary');
+const hexAccent = document.getElementById('hex-accent');
+const selFontHeading = document.getElementById('sel-font-heading');
+const selFontBody = document.getElementById('sel-font-body');
+const swatchCustomP = document.getElementById('swatch-custom-p');
+const swatchCustomS = document.getElementById('swatch-custom-s');
+const swatchCustomA = document.getElementById('swatch-custom-a');
+const customFontsLabel = document.getElementById('custom-fonts-label');
 
 // Initialize Worker
 function initWorker() {
@@ -102,7 +125,7 @@ function initWorker() {
     };
 }
 
-// Theme Styles Specification for Live Preview
+// Built-in Theme Styles Specification for Live Preview
 const THEME_STYLES = {
     modern: {
         fontHeading: "Cambria, Georgia, serif",
@@ -201,9 +224,83 @@ const THEME_STYLES = {
     }
 };
 
+function getCustomThemeStyles() {
+    const p = pickerPrimary ? pickerPrimary.value : "#7C3AED";
+    const s = pickerSecondary ? pickerSecondary.value : "#EC4899";
+    const a = pickerAccent ? pickerAccent.value : "#F59E0B";
+    const fHead = selFontHeading ? selFontHeading.value : "Georgia";
+    const fBody = selFontBody ? selFontBody.value : "Calibri";
+
+    return {
+        fontHeading: `${fHead}, serif`,
+        fontBody: `${fBody}, sans-serif`,
+        h1: p,
+        h2: p,
+        h3: s,
+        secondary: s,
+        accent: a,
+        text: "#2D3748",
+        quoteBorder: s,
+        quoteBg: "#FAF5FF",
+        quoteText: "#334155",
+        tableHeaderBg: p,
+        tableHeaderText: "#FFFFFF",
+        tableBorder: "#CBD5E1",
+        tableRowAlt: "#FAF5FF",
+        codeBg: "#FAF5FF",
+        codeBorder: "#E9D5FF",
+        link: s
+    };
+}
+
+function buildCustomThemeDictForDocx() {
+    const p = (pickerPrimary ? pickerPrimary.value : "#7C3AED").replace('#', '');
+    const s = (pickerSecondary ? pickerSecondary.value : "#EC4899").replace('#', '');
+    const a = (pickerAccent ? pickerAccent.value : "#F59E0B").replace('#', '');
+    const fHead = selFontHeading ? selFontHeading.value : "Georgia";
+    const fBody = selFontBody ? selFontBody.value : "Calibri";
+
+    return {
+        name: "Custom Palette",
+        description: "User customized palette",
+        font_heading: fHead,
+        font_body: fBody,
+        font_code: "Consolas",
+        primary: p,
+        secondary: s,
+        accent: a,
+        heading1: p,
+        heading2: p,
+        heading3: s,
+        heading4: s,
+        text: "2D3748",
+        light_text: "718096",
+        border: "E2E8F0",
+        code_bg: "FAF5FF",
+        code_border: "E9D5FF",
+        code_text: "0F172A",
+        quote_border: s,
+        quote_bg: "FAF5FF",
+        quote_text: "334155",
+        table_header_bg: p,
+        table_header_text: "FFFFFF",
+        table_border: "CBD5E1",
+        table_row_alt: "FAF5FF",
+        link: s,
+        hr_color: "CBD5E1",
+        alerts: {
+            NOTE: { color: s, bg: "FDF4FF", title: "Note", icon: "ℹ" },
+            TIP: { color: "10B981", bg: "F0FDF4", title: "Tip", icon: "💡" },
+            IMPORTANT: { color: p, bg: "FAF5FF", title: "Important", icon: "★" },
+            WARNING: { color: a, bg: "FFFBEB", title: "Warning", icon: "⚠" },
+            CAUTION: { color: "EF4444", bg: "FEF2F2", title: "Caution", icon: "🛑" }
+        }
+    };
+}
+
 // Apply CSS Variables to Live Preview
 function applyThemeToPreview(themeName) {
-    const t = THEME_STYLES[themeName] || THEME_STYLES.modern;
+    const t = (themeName === "custom") ? getCustomThemeStyles() : (THEME_STYLES[themeName] || THEME_STYLES.modern);
     const p = previewContent;
     p.style.setProperty('--theme-font-heading', t.fontHeading);
     p.style.setProperty('--theme-font-body', t.fontBody);
@@ -227,12 +324,10 @@ function applyThemeToPreview(themeName) {
 // Live Markdown Preview Update
 function updatePreview() {
     const raw = mdInput.value;
-    // Strip YAML frontmatter for preview rendering if present
     const cleanMd = raw.replace(/^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*[\r\n]+/, '');
 
     let html = "";
 
-    // If cover page toggle is enabled, prepend styled visual cover banner
     if (chkCover.checked) {
         const titleText = inpTitle.value.trim() || "Document Title";
         const subText = inpSubtitle.value.trim();
@@ -290,9 +385,86 @@ function selectTheme(themeName) {
         document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
         target.classList.add('active');
         selectedTheme = themeName;
+
+        // Toggle custom controls panel visibility
+        if (customThemePanel) {
+            customThemePanel.style.display = (themeName === "custom") ? "block" : "none";
+        }
+
         applyThemeToPreview(themeName);
         updatePreview();
     }
+}
+
+function updateCustomSwatches() {
+    if (swatchCustomP) swatchCustomP.style.background = pickerPrimary.value;
+    if (swatchCustomS) swatchCustomS.style.background = pickerSecondary.value;
+    if (swatchCustomA) swatchCustomA.style.background = pickerAccent.value;
+    if (customFontsLabel) customFontsLabel.innerText = `${selFontHeading.value} • ${selFontBody.value}`;
+}
+
+function setupCustomThemeListeners() {
+    // 2-way sync pickers and hex inputs
+    const syncPair = (picker, hexInput) => {
+        picker.addEventListener('input', () => {
+            hexInput.value = picker.value.toUpperCase();
+            updateCustomSwatches();
+            if (selectedTheme === "custom") {
+                applyThemeToPreview("custom");
+                updatePreview();
+            }
+        });
+        hexInput.addEventListener('input', () => {
+            let v = hexInput.value.trim();
+            if (!v.startsWith('#')) v = '#' + v;
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+                picker.value = v;
+                updateCustomSwatches();
+                if (selectedTheme === "custom") {
+                    applyThemeToPreview("custom");
+                    updatePreview();
+                }
+            }
+        });
+    };
+
+    if (pickerPrimary && hexPrimary) syncPair(pickerPrimary, hexPrimary);
+    if (pickerSecondary && hexSecondary) syncPair(pickerSecondary, hexSecondary);
+    if (pickerAccent && hexAccent) syncPair(pickerAccent, hexAccent);
+
+    [selFontHeading, selFontBody].forEach(el => {
+        if (el) {
+            el.addEventListener('change', () => {
+                updateCustomSwatches();
+                if (selectedTheme === "custom") {
+                    applyThemeToPreview("custom");
+                    updatePreview();
+                }
+            });
+        }
+    });
+
+    // Preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const pName = btn.dataset.preset;
+            const preset = CUSTOM_PRESETS[pName];
+            if (preset) {
+                pickerPrimary.value = preset.primary;
+                hexPrimary.value = preset.primary;
+                pickerSecondary.value = preset.secondary;
+                hexSecondary.value = preset.secondary;
+                pickerAccent.value = preset.accent;
+                hexAccent.value = preset.accent;
+                selFontHeading.value = preset.fontHeading;
+                selFontBody.value = preset.fontBody;
+
+                updateCustomSwatches();
+                selectTheme("custom");
+                showToast(`Applied "${btn.innerText}" preset!`, "success");
+            }
+        });
+    });
 }
 
 // Tab Switching
@@ -370,6 +542,7 @@ function setupExport() {
         const payload = {
             markdown: text,
             theme: selectedTheme,
+            custom_theme: (selectedTheme === "custom") ? buildCustomThemeDictForDocx() : null,
             title: inpTitle.value.trim() || null,
             subtitle: inpSubtitle.value.trim() || null,
             author: inpAuthor.value.trim() || null,
@@ -390,7 +563,6 @@ function onExportSuccess(uint8Array) {
     btnExport.disabled = false;
     btnText.innerText = "Export to Word (.docx)";
 
-    // Create download blob
     const blob = new Blob([uint8Array], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -426,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabs();
     setupFileUpload();
     setupExport();
+    setupCustomThemeListeners();
 
     // Theme card clicks
     document.querySelectorAll('.theme-option').forEach(card => {
@@ -469,7 +642,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     chkCover.addEventListener('change', updatePreview);
 
-    // Load default sample initially
+    // Initial setup
+    updateCustomSwatches();
     mdInput.value = SAMPLE_MARKDOWN;
     inpTitle.value = "MdDoc Architecture & Specification";
     inpSubtitle.value = "High-Performance Markdown to Publication-Quality Word DOCX";

@@ -107,13 +107,17 @@ function initWorker() {
         const { type, message, data } = e.data;
 
         if (type === "STATUS") {
-            statusText.innerText = message;
+            if (statusText) statusText.innerText = message;
         } else if (type === "READY") {
             isEngineReady = true;
-            engineStatus.classList.remove('loading');
-            engineStatus.classList.add('ready');
-            statusText.innerText = "Engine Ready (WASM)";
-            btnExport.disabled = false;
+            window.isEngineReady = true;
+            if (engineStatus) {
+                engineStatus.classList.remove('loading');
+                engineStatus.classList.add('ready');
+            }
+            if (statusText) statusText.innerText = "Engine Ready";
+            if (btnExport) btnExport.disabled = false;
+            if (btnHeaderExport) btnHeaderExport.disabled = false;
         } else if (type === "CONVERT_SUCCESS") {
             onExportSuccess(data);
         } else if (type === "ERROR") {
@@ -123,8 +127,8 @@ function initWorker() {
 
     worker.onerror = function (err) {
         console.error("Worker Error:", err);
-        statusText.innerText = "Engine Error";
-        showToast("Engine initialization error: " + err.message, "error");
+        if (statusText) statusText.innerText = "Engine Error";
+        showToast("Engine error: " + err.message, "error");
     };
 }
 

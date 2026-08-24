@@ -1,7 +1,29 @@
-# MdDoc 📄✨
+# MdDoc Studio 📄✨
+
+<div align="center">
+
+[![Latest Release](https://img.shields.io/github/v/release/iliass-wakkar/MdDoc-Studio?color=blue&label=Latest%20Release&logo=github&style=for-the-badge)](https://github.com/iliass-wakkar/MdDoc-Studio/releases)
+[![Download Windows App](https://img.shields.io/badge/Download-Windows%20EXE-2E8B8B?style=for-the-badge&logo=windows)](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest)
+[![GitHub Stars](https://img.shields.io/github/stars/iliass-wakkar/MdDoc-Studio?style=for-the-badge&logo=github)](https://github.com/iliass-wakkar/MdDoc-Studio)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://github.com/iliass-wakkar/MdDoc-Studio/blob/main/LICENSE)
 
 > **Markdown to Publication-Quality Microsoft Word (`.docx`) Converter**  
-> Standalone, 100% offline, inspired by the document design heuristics of Kimi Skills.
+> Standalone, 100% offline, inspired by the document design heuristics of Kimi Skills.  
+> Available as a single-click **Windows Desktop App (.exe)** and a **24/7 Free WebAssembly Studio**.
+
+</div>
+
+---
+
+## 📥 Downloads & Version History
+
+You can download the standalone desktop application directly from the **[GitHub Releases Page](https://github.com/iliass-wakkar/MdDoc-Studio/releases)**:
+
+| Platform / Edition | Status | Download Link | Description |
+|---|---|---|---|
+| 🪟 **Windows Desktop App** | `v1.0.0` (Latest) | [⬇️ **Download `MdDoc.exe`**](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest) | **Single-file executable**: Double-click to open. Zero installation, zero terminal, zero dependencies. |
+| 📦 **All Version Releases** | All Versions | [📋 **View All Releases & Changelogs**](https://github.com/iliass-wakkar/MdDoc-Studio/releases) | Complete list of all historical releases, release notes, and version assets. |
+| 🌐 **Public Web Studio** | Online (24/7) | [🚀 **Launch Web Studio**](https://github.com/iliass-wakkar/MdDoc-Studio) | 100% Client-Side WebAssembly (WASM) in-browser converter. |
 
 ---
 

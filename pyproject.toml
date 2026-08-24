@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mddoc"
-version = "1.0.0"
-description = "Markdown to publication-quality Microsoft Word DOCX converter with Kimi-inspired design heuristics"
+version = "1.1.0"
+description = "Markdown to Publication-Quality Microsoft Word (.docx) Converter with Kimi-inspired design heuristics"
 readme = "README.md"
 authors = [{ name = "Ilias", email = "ilias@example.com" }]
 license = { text = "MIT" }

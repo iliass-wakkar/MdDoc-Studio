@@ -1,7 +1,7 @@
 """
 MdDoc - Markdown to Beautiful DOCX Toolkit
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from .themes import THEMES, get_theme
 from .native_converter import convert_markdown_to_docx

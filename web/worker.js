@@ -1,5 +1,5 @@
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
-importScripts("./mddoc_bundle.js?v=1.0.1");
+importScripts("./mddoc_bundle.js?v=1.1.0");
 
 let pyodide = null;
 let isReady = false;

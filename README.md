@@ -21,7 +21,7 @@ You can download the standalone desktop application directly from the **[GitHub 
 
 | Platform / Edition | Status | Download Link | Description |
 |---|---|---|---|
-| 🪟 **Windows Desktop App** | `v1.0.0` (Latest) | [⬇️ **Download `MdDoc.exe`**](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest) | **Single-file executable**: Double-click to open. Zero installation, zero terminal, zero dependencies. |
+| 🪟 **Windows Desktop App** | `v1.1.0` (Latest) | [⬇️ **Download `MdDoc.exe`**](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest) | **Single-file executable**: Double-click to open. Zero installation, zero terminal, zero dependencies. |
 | 📦 **All Version Releases** | All Versions | [📋 **View All Releases & Changelogs**](https://github.com/iliass-wakkar/MdDoc-Studio/releases) | Complete list of all historical releases, release notes, and version assets. |
 | 🌐 **Public Web Studio** | Online (24/7) | [🚀 **Launch Web Studio**](https://github.com/iliass-wakkar/MdDoc-Studio) | 100% Client-Side WebAssembly (WASM) in-browser converter. |
 

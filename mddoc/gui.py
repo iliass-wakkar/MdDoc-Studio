@@ -157,7 +157,7 @@ class MdDocModernApp(ctk.CTk):
 
         lbl_version = ctk.CTkLabel(
             self.sidebar_frame,
-            text="v1.0.0 • Desktop Edition",
+            text="v1.1.0 • Desktop Edition",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color=("#0284C7", "#38BDF8")
         )

@@ -596,28 +596,35 @@ body {
     box-shadow: 0 0 0 3px rgba(46, 139, 139, 0.15);
 }
 
-/* Export Button */
-.action-card { margin-top: 10px; }
+/* Primary Download Card */
+.primary-download-card {
+    padding: 16px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 16px;
+}
 .btn-export {
     width: 100%;
-    background: linear-gradient(135deg, #1E3A5F, #2E8B8B);
+    background: linear-gradient(135deg, #1E3A5F 0%, #2E8B8B 100%);
     color: #FFFFFF;
     border: none;
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 14px 18px;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 4px 10px rgba(30, 58, 95, 0.25);
-    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.25);
+    transition: all 0.2s ease;
 }
 .btn-export:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(30, 58, 95, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(30, 58, 95, 0.35);
 }
 .btn-export:disabled {
     background: #94A3B8;
@@ -715,6 +722,106 @@ body {
     line-height: 1.45;
 }
 
+/* Modern In-App Modal Dialog */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: modalFadeIn 0.15s ease-out;
+}
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-card {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    max-width: 420px;
+    width: 100%;
+    padding: 24px;
+    text-align: center;
+    animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalPop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.modal-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    line-height: 1;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.modal-body {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+
+.modal-btn-secondary {
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid var(--border-color);
+}
+.modal-btn-secondary:hover {
+    background: #E2E8F0;
+    color: var(--text-main);
+}
+
+.modal-btn-primary {
+    background: var(--primary);
+    color: #FFFFFF;
+}
+.modal-btn-primary:hover {
+    background: var(--primary-light);
+}
+
+.modal-btn-danger {
+    background: #EF4444;
+    color: #FFFFFF;
+}
+.modal-btn-danger:hover {
+    background: #DC2626;
+}
+
 /* Footer */
 .app-footer {
     border-top: 1px solid var(--border-color);
@@ -734,3 +841,5 @@ body {
 @media (max-width: 640px) {
     .footer-container { flex-direction: column; gap: 6px; text-align: center; }
 }
+
+

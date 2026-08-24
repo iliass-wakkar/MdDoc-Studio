@@ -615,6 +615,41 @@ function showToast(msg, type) {
     statusToast.innerText = msg;
 }
 
+// In-App Modal Dialog
+function showModal({ icon = "⚠️", title = "Confirmation", message = "", confirmText = "Confirm", isDanger = false, onConfirm }) {
+    const modal = document.getElementById('app-modal');
+    const mIcon = document.getElementById('modal-icon');
+    const mTitle = document.getElementById('modal-title');
+    const mBody = document.getElementById('modal-body');
+    const mCancel = document.getElementById('modal-btn-cancel');
+    const mConfirm = document.getElementById('modal-btn-confirm');
+    
+    if (!modal) return;
+    
+    mIcon.innerText = icon;
+    mTitle.innerText = title;
+    mBody.innerText = message;
+    mConfirm.innerText = confirmText;
+    mConfirm.className = `modal-btn ${isDanger ? 'modal-btn-danger' : 'modal-btn-primary'}`;
+    
+    modal.style.display = 'flex';
+    
+    const closeModal = () => {
+        modal.style.display = 'none';
+        mConfirm.onclick = null;
+        mCancel.onclick = null;
+    };
+    
+    mCancel.onclick = closeModal;
+    mConfirm.onclick = () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    };
+    modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+    };
+}
+
 // Event Listeners & Boot
 document.addEventListener('DOMContentLoaded', () => {
     initWorker();
@@ -638,15 +673,23 @@ document.addEventListener('DOMContentLoaded', () => {
         inpAuthor.value = "Engineering Team";
         selectTheme("modern");
         updatePreview();
-        showToast("Loaded comprehensive sample document.", "success");
+        showToast("Loaded sample document.", "success");
     });
 
-    // Clear button
+    // Clear button with In-App Modal Dialog
     btnClear.addEventListener('click', () => {
-        if (confirm("Clear editor content?")) {
-            mdInput.value = "";
-            updatePreview();
-        }
+        showModal({
+            icon: "🗑️",
+            title: "Clear Editor Content?",
+            message: "Are you sure you want to clear all Markdown content? This action cannot be undone.",
+            confirmText: "Yes, Clear All",
+            isDanger: true,
+            onConfirm: () => {
+                mdInput.value = "";
+                updatePreview();
+                showToast("Editor content cleared.", "success");
+            }
+        });
     });
 
     // Auto-update preview on typing (debounced)

@@ -7,7 +7,7 @@
     <meta name="description" content="Free, 100% client-side Markdown to beautifully styled Microsoft Word (.docx) converter powered by WebAssembly. Zero data leaves your device.">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css?v=1.0.3">
+    <link rel="stylesheet" href="style.css?v=1.0.4">
     <!-- Marked.js for fast client-side live preview -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -62,9 +62,6 @@
                                 📂 Open File
                                 <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none;">
                             </label>
-                            <button class="action-btn highlight-btn" id="btn-toolbar-export" title="Export to Word Document">
-                                <span>⬇️</span> Download .docx
-                            </button>
                         </div>
                     </div>
 
@@ -88,6 +85,16 @@
             <!-- Right Pane: Design Theme & Document Controls -->
             <aside class="controls-pane">
                 
+                <!-- ⬇️ PRIMARY DOWNLOAD ACTION CARD (At the very top of sidebar) -->
+                <div class="card primary-download-card">
+                    <button class="btn-export" id="btn-export">
+                        <span class="btn-icon">⬇️</span>
+                        <span id="btn-text">Download Word (.docx)</span>
+                    </button>
+                    <div id="download-box" class="download-box" style="display:none;"></div>
+                    <div id="status-toast" class="status-toast"></div>
+                </div>
+
                 <!-- Theme Selector Card -->
                 <div class="card theme-card-section">
                     <h2 class="card-heading">
@@ -277,16 +284,6 @@
                     </div>
                 </div>
 
-                <!-- Convert & Download Action Button -->
-                <div class="action-card">
-                    <button class="btn-export" id="btn-export">
-                        <span class="btn-icon">⬇️</span>
-                        <span id="btn-text">Download Word Document (.docx)</span>
-                    </button>
-                    <div id="download-box" class="download-box" style="display:none;"></div>
-                    <div id="status-toast" class="status-toast"></div>
-                </div>
-
                 <div class="privacy-note">
                     ⚡ <strong>Zero Cloud Calls:</strong> Documents are converted 100% locally in your browser using WebAssembly. No files ever touch an external server.
                 </div>
@@ -302,6 +299,19 @@
         </div>
     </footer>
 
-    <script src="app.js?v=1.0.3"></script>
+    <!-- In-App Reusable Modal Popup Dialog -->
+    <div id="app-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-icon" id="modal-icon">⚠️</div>
+            <h3 class="modal-title" id="modal-title">Clear Document?</h3>
+            <p class="modal-body" id="modal-body">This will erase all content in the editor.</p>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn modal-btn-secondary" id="modal-btn-cancel">Cancel</button>
+                <button type="button" class="modal-btn modal-btn-danger" id="modal-btn-confirm">Yes, Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=1.0.5"></script>
 </body>
 </html>

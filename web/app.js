@@ -68,10 +68,13 @@ const fileInput = document.getElementById('file-input');
 const btnSample = document.getElementById('btn-sample');
 const btnClear = document.getElementById('btn-clear');
 const btnExport = document.getElementById('btn-export');
+const btnHeaderExport = document.getElementById('btn-header-export');
+const btnToolbarExport = document.getElementById('btn-toolbar-export');
 const btnText = document.getElementById('btn-text');
 const engineStatus = document.getElementById('engine-status');
 const statusText = document.getElementById('status-text');
 const statusToast = document.getElementById('status-toast');
+const downloadBox = document.getElementById('download-box');
 
 // Metadata Inputs
 const inpTitle = document.getElementById('meta-title');
@@ -523,7 +526,7 @@ function setupFileUpload() {
 
 // Export Trigger
 function setupExport() {
-    btnExport.addEventListener('click', () => {
+    const triggerExport = () => {
         const text = mdInput.value.trim();
         if (!text) {
             showToast("Please enter or upload Markdown content first.", "error");
@@ -535,9 +538,11 @@ function setupExport() {
             return;
         }
 
-        btnExport.disabled = true;
-        btnText.innerText = "Generating DOCX in Browser...";
-        showToast("Converting document locally...", "success");
+        if (btnExport) btnExport.disabled = true;
+        if (btnHeaderExport) btnHeaderExport.disabled = true;
+        if (btnToolbarExport) btnToolbarExport.disabled = true;
+        if (btnText) btnText.innerText = "Generating DOCX...";
+        showToast("Generating document locally in browser...", "success");
 
         const payload = {
             markdown: text,
@@ -556,33 +561,51 @@ function setupExport() {
             id: Date.now(),
             payload
         });
-    });
+    };
+
+    if (btnExport) btnExport.addEventListener('click', triggerExport);
+    if (btnHeaderExport) btnHeaderExport.addEventListener('click', triggerExport);
+    if (btnToolbarExport) btnToolbarExport.addEventListener('click', triggerExport);
 }
 
 function onExportSuccess(uint8Array) {
-    btnExport.disabled = false;
-    btnText.innerText = "Export to Word (.docx)";
+    if (btnExport) btnExport.disabled = false;
+    if (btnHeaderExport) btnHeaderExport.disabled = false;
+    if (btnToolbarExport) btnToolbarExport.disabled = false;
+    if (btnText) btnText.innerText = "Download Word Document (.docx)";
 
     const blob = new Blob([uint8Array], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     
     let docName = inpTitle.value.trim() || "document";
     docName = docName.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_');
-    a.download = `${docName || "document"}.docx`;
-    
+    const fileName = `${docName || "document"}.docx`;
+
+    // Trigger automatic download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
 
-    showToast("✔ Document converted & downloaded successfully!", "success");
+    // Show prominent direct download box
+    if (downloadBox) {
+        downloadBox.style.display = 'block';
+        downloadBox.innerHTML = `
+            <div class="download-box-text">🎉 Word Document Ready!</div>
+            <a href="${url}" download="${fileName}">⬇️ Click to Re-Download (${fileName})</a>
+        `;
+    }
+
+    showToast(`✔ Downloaded "${fileName}" successfully!`, "success");
 }
 
 function onExportError(errMsg) {
-    btnExport.disabled = false;
-    btnText.innerText = "Export to Word (.docx)";
+    if (btnExport) btnExport.disabled = false;
+    if (btnHeaderExport) btnHeaderExport.disabled = false;
+    if (btnToolbarExport) btnToolbarExport.disabled = false;
+    if (btnText) btnText.innerText = "Download Word Document (.docx)";
     showToast("❌ Conversion failed: " + errMsg, "error");
 }
 

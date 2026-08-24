@@ -7,7 +7,7 @@
     <meta name="description" content="Free, 100% client-side Markdown to beautifully styled Microsoft Word (.docx) converter powered by WebAssembly. Zero data leaves your device.">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css?v=1.0.2">
+    <link rel="stylesheet" href="style.css?v=1.0.3">
     <!-- Marked.js for fast client-side live preview -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -31,7 +31,9 @@
                     <span class="status-dot"></span>
                     <span id="status-text">Initializing WebAssembly Engine...</span>
                 </div>
-                <span class="privacy-badge">🔒 100% Client-Side & Private</span>
+                <button class="header-btn-export" id="btn-header-export">
+                    <span>⬇️</span> Download .docx
+                </button>
             </div>
         </div>
     </header>
@@ -60,6 +62,9 @@
                                 📂 Open File
                                 <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none;">
                             </label>
+                            <button class="action-btn highlight-btn" id="btn-toolbar-export" title="Export to Word Document">
+                                <span>⬇️</span> Download .docx
+                            </button>
                         </div>
                     </div>
 
@@ -272,12 +277,13 @@
                     </div>
                 </div>
 
-                <!-- Convert Action Button -->
+                <!-- Convert & Download Action Button -->
                 <div class="action-card">
                     <button class="btn-export" id="btn-export">
-                        <span class="btn-icon">✨</span>
-                        <span id="btn-text">Export to Word (.docx)</span>
+                        <span class="btn-icon">⬇️</span>
+                        <span id="btn-text">Download Word Document (.docx)</span>
                     </button>
+                    <div id="download-box" class="download-box" style="display:none;"></div>
                     <div id="status-toast" class="status-toast"></div>
                 </div>
 
@@ -296,6 +302,6 @@
         </div>
     </footer>
 
-    <script src="app.js?v=1.0.2"></script>
+    <script src="app.js?v=1.0.3"></script>
 </body>
 </html>

@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MdDoc Studio — Markdown to Publication-Quality Word DOCX</title>
     <meta name="description" content="Free, 100% client-side Markdown to beautifully styled Microsoft Word (.docx) converter powered by WebAssembly. Zero data leaves your device.">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.0.1">
     <!-- Marked.js for fast client-side live preview -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -218,6 +219,6 @@
         </div>
     </footer>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=1.0.1"></script>
 </body>
 </html>

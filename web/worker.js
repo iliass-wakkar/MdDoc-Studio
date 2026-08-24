@@ -1,10 +1,5 @@
-/**
- * Pyodide Web Worker for MdDoc.
- * Runs Python-in-WebAssembly in background thread with zero UI freezing.
- */
-
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
-importScripts("./mddoc_bundle.js");
+importScripts("./mddoc_bundle.js?v=1.0.1");
 
 let pyodide = null;
 let isReady = false;

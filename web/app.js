@@ -75,7 +75,7 @@ const selPageSize = document.getElementById('sel-pagesize');
 
 // Initialize Worker
 function initWorker() {
-    worker = new Worker('worker.js');
+    worker = new Worker('worker.js?v=' + Date.now());
 
     worker.onmessage = function (e) {
         const { type, message, data } = e.data;

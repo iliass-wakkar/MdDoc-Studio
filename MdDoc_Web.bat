@@ -3,10 +3,10 @@ REM Launcher for MdDoc Web Studio in Browser
 REM Starts pythonw in detached background and closes instantly.
 
 if exist "%USERPROFILE%\miniconda3\pythonw.exe" (
-    start "" "%USERPROFILE%\miniconda3\pythonw.exe" "%~dp0mddoc\web_server.py"
+    start "" "%USERPROFILE%\miniconda3\pythonw.exe" "%~dp0serve_web.py"
 ) else if exist "C:\Users\ilias\miniconda3\pythonw.exe" (
-    start "" "C:\Users\ilias\miniconda3\pythonw.exe" "%~dp0mddoc\web_server.py"
+    start "" "C:\Users\ilias\miniconda3\pythonw.exe" "%~dp0serve_web.py"
 ) else (
-    start "" pythonw "%~dp0mddoc\web_server.py"
+    start "" pythonw "%~dp0serve_web.py"
 )
 exit

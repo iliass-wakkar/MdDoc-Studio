@@ -14,4 +14,4 @@ If Not fso.FileExists(pythonwPath) Then
     End If
 End If
 
-WshShell.Run """" & pythonwPath & """ """ & strCurDir & "\mddoc\web_server.py""", 0, False
+WshShell.Run """" & pythonwPath & """ """ & strCurDir & "\serve_web.py""", 0, False

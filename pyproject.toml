@@ -8,7 +8,7 @@ version = "1.1.0"
 description = "Markdown to Publication-Quality Microsoft Word (.docx) Converter with Kimi-inspired design heuristics"
 readme = "README.md"
 authors = [{ name = "Ilias", email = "ilias@example.com" }]
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.8"
 dependencies = [
     "python-docx>=1.0.0",
@@ -19,3 +19,7 @@ dependencies = [
 
 [project.scripts]
 mddoc = "mddoc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mddoc*"]

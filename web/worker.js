@@ -39,7 +39,7 @@ sys.path.insert(0, '/home/pyodide')
 
 from mddoc.native_converter import MarkdownToDocxConverter
 
-def convert_md_to_docx_bytes(md_text, theme_name="modern", custom_theme=None, title=None, subtitle=None, author=None, date=None, show_cover=True, show_toc=True, page_size="A4"):
+def convert_md_to_docx_bytes(md_text, theme_name="modern", custom_theme=None, title=None, subtitle=None, author=None, date=None, show_cover=True, show_toc=True, show_header=False, page_size="A4"):
     converter = MarkdownToDocxConverter(
         theme_name=theme_name,
         custom_theme=custom_theme,
@@ -49,6 +49,7 @@ def convert_md_to_docx_bytes(md_text, theme_name="modern", custom_theme=None, ti
         date=date,
         show_cover=show_cover,
         show_toc=show_toc,
+        show_header=show_header,
         page_size=page_size
     )
     doc = converter.convert(md_text)
@@ -86,8 +87,9 @@ self.onmessage = async function (e) {
                 subtitle = null,
                 author = null,
                 date = null,
-                show_cover = true,
-                show_toc = true,
+                show_cover = false,
+                show_toc = false,
+                show_header = false,
                 page_size = "A4"
             } = payload;
 
@@ -101,6 +103,7 @@ self.onmessage = async function (e) {
             pyodide.globals.set("_date_input", date);
             pyodide.globals.set("_cover_input", show_cover);
             pyodide.globals.set("_toc_input", show_toc);
+            pyodide.globals.set("_header_input", show_header);
             pyodide.globals.set("_size_input", page_size);
 
             const resultBytesProxy = await pyodide.runPythonAsync(`
@@ -114,6 +117,7 @@ convert_md_to_docx_bytes(
     date=_date_input,
     show_cover=_cover_input,
     show_toc=_toc_input,
+    show_header=_header_input,
     page_size=_size_input
 )
 `);

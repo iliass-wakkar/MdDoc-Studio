@@ -390,7 +390,7 @@ class MdDocModernApp(ctk.CTk):
         tog_row = ctk.CTkFrame(opts_card, fg_color="transparent")
         tog_row.pack(fill="x", padx=14, pady=(12, 8))
 
-        self.var_cover = tk.BooleanVar(value=True)
+        self.var_cover = tk.BooleanVar(value=False)
         self.sw_cover = ctk.CTkSwitch(
             tog_row,
             text="Cover Page",
@@ -399,9 +399,9 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#0F172A", "#FFFFFF"),
             progress_color=("#2563EB", "#2563EB")
         )
-        self.sw_cover.pack(side="left", padx=(0, 20))
+        self.sw_cover.pack(side="left", padx=(0, 16))
 
-        self.var_toc = tk.BooleanVar(value=True)
+        self.var_toc = tk.BooleanVar(value=False)
         self.sw_toc = ctk.CTkSwitch(
             tog_row,
             text="Table of Contents",
@@ -410,7 +410,18 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#0F172A", "#FFFFFF"),
             progress_color=("#2563EB", "#2563EB")
         )
-        self.sw_toc.pack(side="left", padx=(0, 20))
+        self.sw_toc.pack(side="left", padx=(0, 16))
+
+        self.var_header = tk.BooleanVar(value=False)
+        self.sw_header = ctk.CTkSwitch(
+            tog_row,
+            text="Running Header",
+            variable=self.var_header,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#0F172A", "#FFFFFF"),
+            progress_color=("#2563EB", "#2563EB")
+        )
+        self.sw_header.pack(side="left", padx=(0, 16))
 
         lbl_psize = ctk.CTkLabel(
             tog_row,
@@ -926,6 +937,7 @@ class MdDocModernApp(ctk.CTk):
         date = self.var_date.get().strip() or None
         show_cover = self.var_cover.get()
         show_toc = self.var_toc.get()
+        show_header = self.var_header.get()
         page_size = self.var_pagesize.get()
 
         custom_dict = None
@@ -950,6 +962,7 @@ class MdDocModernApp(ctk.CTk):
                 date=date,
                 show_cover=show_cover,
                 show_toc=show_toc,
+                show_header=show_header,
                 page_size=page_size
             )
             self.last_generated_path = out_path

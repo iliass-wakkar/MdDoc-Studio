@@ -82,6 +82,7 @@ const inpAuthor = document.getElementById('meta-author');
 const inpSubtitle = document.getElementById('meta-subtitle');
 const chkCover = document.getElementById('chk-cover');
 const chkToc = document.getElementById('chk-toc');
+const chkHeader = document.getElementById('chk-header');
 const selPageSize = document.getElementById('sel-pagesize');
 
 // Custom Theme Controls
@@ -381,6 +382,7 @@ function checkAndApplyFrontmatter(text) {
             if (key === "theme") selectTheme(val.toLowerCase());
             if (key === "cover_page") chkCover.checked = (val.toLowerCase() === "true");
             if (key === "toc") chkToc.checked = (val.toLowerCase() === "true");
+            if (key === "header" || key === "running_header") if (chkHeader) chkHeader.checked = (val.toLowerCase() === "true");
         }
     });
 }
@@ -557,6 +559,7 @@ function setupExport() {
             author: inpAuthor.value.trim() || null,
             show_cover: chkCover.checked,
             show_toc: chkToc.checked,
+            show_header: chkHeader ? chkHeader.checked : false,
             page_size: selPageSize.value
         };
 

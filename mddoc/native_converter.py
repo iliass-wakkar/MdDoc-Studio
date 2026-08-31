@@ -68,6 +68,7 @@ class MarkdownToDocxConverter:
         date: Optional[str] = None,
         show_cover: bool = True,
         show_toc: bool = True,
+        show_header: bool = False,
         page_size: str = "A4",
     ):
         if custom_theme and isinstance(custom_theme, dict):
@@ -83,6 +84,7 @@ class MarkdownToDocxConverter:
         self.date = date or datetime.now().strftime("%B %d, %Y")
         self.show_cover = show_cover
         self.show_toc = show_toc
+        self.show_header = show_header
         self.page_size = page_size
         self.heading_count = 0
         self.doc = docx.Document()
@@ -193,20 +195,25 @@ class MarkdownToDocxConverter:
     def _render_headers_footers(self):
         """Setup headers and footers for body pages."""
         for section in self.doc.sections:
-            # Header
-            header = section.header
-            header.is_linked_to_previous = False
-            hp = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
-            hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            if self.title:
+            # Header (Only render if show_header is True AND title is present)
+            if self.show_header and self.title:
+                header = section.header
+                header.is_linked_to_previous = False
+                hp = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
+                hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 run_h = hp.add_run(self.title)
                 run_h.font.size = Pt(8.5)
                 run_h.font.color.rgb = hex_to_rgb(self.theme["light_text"])
                 run_h.font.name = self.theme["font_body"]
-            set_p_spacing(hp, before=Pt(0), after=Pt(4))
-            add_p_border_bottom(hp, self.theme["table_border"], sz=4, space_after=Pt(4))
+                set_p_spacing(hp, before=Pt(0), after=Pt(4))
+                add_p_border_bottom(hp, self.theme["table_border"], sz=4, space_after=Pt(4))
+            else:
+                header = section.header
+                header.is_linked_to_previous = False
+                if header.paragraphs:
+                    header.paragraphs[0].text = ""
 
-            # Footer
+            # Footer (Always add clean page numbering)
             footer = section.footer
             footer.is_linked_to_previous = False
             fp = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
@@ -627,6 +634,10 @@ class MarkdownToDocxConverter:
             self.show_cover = bool(frontmatter["cover_page"])
         if "toc" in frontmatter:
             self.show_toc = bool(frontmatter["toc"])
+        if "header" in frontmatter:
+            self.show_header = bool(frontmatter["header"])
+        elif "running_header" in frontmatter:
+            self.show_header = bool(frontmatter["running_header"])
 
         # Fallback title from first H1 if still missing
         if not self.title:
@@ -677,6 +688,7 @@ def convert_markdown_to_docx(
     date: Optional[str] = None,
     show_cover: bool = True,
     show_toc: bool = True,
+    show_header: bool = False,
     page_size: str = "A4",
     md_content: Optional[str] = None
 ) -> str:
@@ -705,6 +717,7 @@ def convert_markdown_to_docx(
         date=date,
         show_cover=show_cover,
         show_toc=show_toc,
+        show_header=show_header,
         page_size=page_size
     )
 

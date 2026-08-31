@@ -1,0 +1,2 @@
+[console_scripts]
+mddoc = mddoc.cli:main

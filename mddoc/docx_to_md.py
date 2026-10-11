@@ -8,7 +8,6 @@ Preserves headings, lists, tables, bold/italics, links, blockquotes, and code.
 import io
 import re
 from typing import Union, BinaryIO, Optional
-import mammoth
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 
@@ -214,6 +213,16 @@ def convert_docx_to_markdown(
         Formatted GitHub-Flavored Markdown string.
     """
     s_map = style_map or DEFAULT_STYLE_MAP
+
+    # Keep the package importable in runtimes that don't need Python-based
+    # DOCX conversion (the browser uses Mammoth.js for that workflow).
+    try:
+        import mammoth
+    except ImportError as exc:
+        raise RuntimeError(
+            "DOCX-to-Markdown conversion requires the 'mammoth' package. "
+            "Install the project dependencies to use this Python converter."
+        ) from exc
 
     if isinstance(docx_source, str):
         with open(docx_source, "rb") as f:

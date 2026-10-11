@@ -1238,4 +1238,291 @@ function setupPdfToolbox() {
             }
         });
     }
+
+    // Tool 4: Split PDF
+    const sDrop = document.getElementById('split-drop-zone');
+    const sInput = document.getElementById('split-file-input');
+    const sActionBar = document.getElementById('split-action-bar');
+    const sStatus = document.getElementById('split-status-text');
+    const selSplitMode = document.getElementById('sel-split-mode');
+    const inpSplitRange = document.getElementById('inp-split-range');
+    const btnExecSplit = document.getElementById('btn-execute-split');
+
+    let loadedSplitFile = null;
+    let loadedSplitBytes = null;
+
+    if (sDrop && sInput) {
+        sDrop.addEventListener('click', () => sInput.click());
+        sDrop.addEventListener('dragover', (e) => { e.preventDefault(); sDrop.classList.add('dragover'); });
+        sDrop.addEventListener('dragleave', () => sDrop.classList.remove('dragover'));
+        sDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            sDrop.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleSplitDoc(e.dataTransfer.files[0]);
+        });
+        sInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleSplitDoc(e.target.files[0]);
+        });
+    }
+
+    if (selSplitMode && inpSplitRange) {
+        selSplitMode.addEventListener('change', () => {
+            if (selSplitMode.value === 'range') {
+                inpSplitRange.style.display = 'inline-block';
+            } else {
+                inpSplitRange.style.display = 'none';
+            }
+        });
+    }
+
+    async function handleSplitDoc(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            return showToast("Please select a PDF document.", "error");
+        }
+        try {
+            loadedSplitBytes = await file.arrayBuffer();
+            const srcDoc = await PDFLib.PDFDocument.load(loadedSplitBytes);
+            loadedSplitFile = file;
+            sActionBar.style.display = 'flex';
+            sStatus.innerText = `${file.name} • ${srcDoc.getPageCount()} pages`;
+            showToast(`Loaded ${file.name} (${srcDoc.getPageCount()} pages)`, "success");
+        } catch (err) {
+            console.error("PDF Load Error:", err);
+            showToast("Failed to load PDF: " + err.message, "error");
+        }
+    }
+
+    if (btnExecSplit) {
+        btnExecSplit.addEventListener('click', async () => {
+            if (!loadedSplitFile || !loadedSplitBytes) return showToast("Please select a PDF to split first.", "error");
+            showToast("Processing PDF split in browser memory...", "success");
+            try {
+                const srcDoc = await PDFLib.PDFDocument.load(loadedSplitBytes);
+                const totalPages = srcDoc.getPageCount();
+                const baseName = loadedSplitFile.name.replace(/\.pdf$/i, '');
+
+                if (selSplitMode.value === 'all') {
+                    const zip = new JSZip();
+                    for (let i = 0; i < totalPages; i++) {
+                        const singleDoc = await PDFLib.PDFDocument.create();
+                        const [copiedPage] = await singleDoc.copyPages(srcDoc, [i]);
+                        singleDoc.addPage(copiedPage);
+                        const singleBytes = await singleDoc.save();
+                        zip.file(`${baseName}_page_${String(i + 1).padStart(3, '0')}.pdf`, singleBytes);
+                    }
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const url = URL.createObjectURL(content);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${baseName}_split_pages.zip`;
+                    a.click();
+                    a.remove();
+                    showToast(`Successfully extracted ${totalPages} pages into ZIP!`, "success");
+                } else {
+                    // Custom range, e.g. "1-3, 5"
+                    const rangeStr = inpSplitRange.value.trim();
+                    if (!rangeStr) return showToast("Please specify page numbers (e.g. 1-3).", "error");
+
+                    const pagesToExtract = new Set();
+                    const parts = rangeStr.split(',');
+                    for (const part of parts) {
+                        const trimmed = part.trim();
+                        if (trimmed.includes('-')) {
+                            const [start, end] = trimmed.split('-').map(x => parseInt(x.trim(), 10));
+                            if (!isNaN(start) && !isNaN(end)) {
+                                for (let p = Math.max(1, start); p <= Math.min(totalPages, end); p++) {
+                                    pagesToExtract.add(p - 1);
+                                }
+                            }
+                        } else {
+                            const p = parseInt(trimmed, 10);
+                            if (!isNaN(p) && p >= 1 && p <= totalPages) {
+                                pagesToExtract.add(p - 1);
+                            }
+                        }
+                    }
+
+                    const sortedIndices = Array.from(pagesToExtract).sort((a, b) => a - b);
+                    if (!sortedIndices.length) return showToast("No valid page numbers found in range.", "error");
+
+                    const rangeDoc = await PDFLib.PDFDocument.create();
+                    const copiedPages = await rangeDoc.copyPages(srcDoc, sortedIndices);
+                    copiedPages.forEach(p => rangeDoc.addPage(p));
+                    const rangeBytes = await rangeDoc.save();
+                    const blob = new Blob([rangeBytes], { type: "application/pdf" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${baseName}_extracted_pages.pdf`;
+                    a.click();
+                    a.remove();
+                    showToast(`Extracted ${sortedIndices.length} pages into PDF!`, "success");
+                }
+            } catch (err) {
+                console.error("Split Error:", err);
+                showToast("Failed to split PDF: " + err.message, "error");
+            }
+        });
+    }
+
+    // Tool 5: Rotate PDF
+    const rDrop = document.getElementById('rotate-drop-zone');
+    const rInput = document.getElementById('rotate-file-input');
+    const rActionBar = document.getElementById('rotate-action-bar');
+    const rStatus = document.getElementById('rotate-status-text');
+    const selRotateAngle = document.getElementById('sel-rotate-angle');
+    const btnExecRotate = document.getElementById('btn-execute-rotate');
+
+    let loadedRotateFile = null;
+    let loadedRotateBytes = null;
+
+    if (rDrop && rInput) {
+        rDrop.addEventListener('click', () => rInput.click());
+        rDrop.addEventListener('dragover', (e) => { e.preventDefault(); rDrop.classList.add('dragover'); });
+        rDrop.addEventListener('dragleave', () => rDrop.classList.remove('dragover'));
+        rDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            rDrop.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleRotateDoc(e.dataTransfer.files[0]);
+        });
+        rInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleRotateDoc(e.target.files[0]);
+        });
+    }
+
+    async function handleRotateDoc(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            return showToast("Please select a PDF document.", "error");
+        }
+        try {
+            loadedRotateBytes = await file.arrayBuffer();
+            const srcDoc = await PDFLib.PDFDocument.load(loadedRotateBytes);
+            loadedRotateFile = file;
+            rActionBar.style.display = 'flex';
+            rStatus.innerText = `${file.name} • ${srcDoc.getPageCount()} pages`;
+            showToast(`Loaded ${file.name} (${srcDoc.getPageCount()} pages)`, "success");
+        } catch (err) {
+            console.error("PDF Load Error:", err);
+            showToast("Failed to load PDF: " + err.message, "error");
+        }
+    }
+
+    if (btnExecRotate) {
+        btnExecRotate.addEventListener('click', async () => {
+            if (!loadedRotateFile || !loadedRotateBytes) return showToast("Please select a PDF to rotate first.", "error");
+            showToast("Rotating PDF in browser memory...", "success");
+            try {
+                const pdfDoc = await PDFLib.PDFDocument.load(loadedRotateBytes);
+                const angle = parseInt(selRotateAngle.value, 10) || 90;
+                const pages = pdfDoc.getPages();
+                pages.forEach(page => {
+                    const currentRotation = page.getRotation().angle;
+                    page.setRotation(PDFLib.degrees((currentRotation + angle) % 360));
+                });
+
+                const rotatedBytes = await pdfDoc.save();
+                const blob = new Blob([rotatedBytes], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const baseName = loadedRotateFile.name.replace(/\.pdf$/i, '');
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${baseName}_rotated.pdf`;
+                a.click();
+                a.remove();
+                showToast(`PDF rotated (${angle}°) and downloaded!`, "success");
+            } catch (err) {
+                console.error("Rotate Error:", err);
+                showToast("Failed to rotate PDF: " + err.message, "error");
+            }
+        });
+    }
+
+    // Tool 6: Extract Text from PDF
+    const eDrop = document.getElementById('extract-drop-zone');
+    const eInput = document.getElementById('extract-file-input');
+    const eActionBar = document.getElementById('extract-action-bar');
+    const eStatus = document.getElementById('extract-status-text');
+    const eWrapper = document.getElementById('extract-viewer-wrapper');
+    const txtExtracted = document.getElementById('txt-extracted-content');
+    const btnCopyExtracted = document.getElementById('btn-copy-extracted');
+    const btnDownloadExtracted = document.getElementById('btn-download-extracted');
+
+    let currentExtractedText = "";
+    let extractedDocName = "document";
+
+    if (eDrop && eInput) {
+        eDrop.addEventListener('click', () => eInput.click());
+        eDrop.addEventListener('dragover', (e) => { e.preventDefault(); eDrop.classList.add('dragover'); });
+        eDrop.addEventListener('dragleave', () => eDrop.classList.remove('dragover'));
+        eDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            eDrop.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleExtractDoc(e.dataTransfer.files[0]);
+        });
+        eInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleExtractDoc(e.target.files[0]);
+        });
+    }
+
+    async function handleExtractDoc(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            return showToast("Please select a PDF document.", "error");
+        }
+        showToast("Extracting text locally in browser...", "success");
+        extractedDocName = file.name.replace(/\.pdf$/i, '');
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+
+            const textChunks = [];
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                const content = await page.getTextContent();
+                const strings = content.items.map(item => item.str).join(' ');
+                textChunks.push(`<!-- Page ${pageNum} of ${pdfDoc.numPages} -->\n${strings.trim()}\n`);
+            }
+
+            currentExtractedText = textChunks.join('\n').trim();
+            txtExtracted.value = currentExtractedText;
+            eActionBar.style.display = 'flex';
+            eWrapper.style.display = 'block';
+
+            const words = currentExtractedText ? currentExtractedText.split(/\s+/).length : 0;
+            eStatus.innerText = `${file.name} • ${words.toLocaleString()} words extracted (${pdfDoc.numPages} pages)`;
+            showToast(`Extracted ${words.toLocaleString()} words successfully!`, "success");
+        } catch (err) {
+            console.error("Text Extract Error:", err);
+            showToast("Failed to extract text: " + err.message, "error");
+        }
+    }
+
+    if (btnCopyExtracted) {
+        btnCopyExtracted.addEventListener('click', async () => {
+            if (!currentExtractedText) return showToast("No text to copy.", "error");
+            try {
+                await navigator.clipboard.writeText(currentExtractedText);
+                showToast("Text copied to clipboard!", "success");
+            } catch (err) {
+                txtExtracted.select();
+                document.execCommand('copy');
+                showToast("Text copied to clipboard!", "success");
+            }
+        });
+    }
+
+    if (btnDownloadExtracted) {
+        btnDownloadExtracted.addEventListener('click', () => {
+            if (!currentExtractedText) return showToast("No text to download.", "error");
+            const blob = new Blob([currentExtractedText], { type: "text/markdown;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${extractedDocName}_extracted.md`;
+            a.click();
+            a.remove();
+            showToast(`Saved "${extractedDocName}_extracted.md"!`, "success");
+        });
+    }
 }
+

@@ -36,9 +36,12 @@ You can download the standalone desktop application directly from the **[GitHub 
   - **Typst Vector PDF Engine:** Modern Typst markup with micro-typographic kerning and high-speed compilation.
 - **🔄 Semantic Word (.docx) ➔ Markdown Converter:** Extracts headings, tables, bullet lists, bold/italics, and code blocks into clean GitHub-Flavored Markdown. Available directly in the browser and desktop app.
 - **🛠️ Zero-Upload PDF Utility Toolbox:**
-  - **PDF ➔ Images (PNG):** Extracts 200/300 DPI high-resolution PNG pages.
+  - **PDF ➔ Images (PNG):** Extracts 200/300 DPI high-resolution PNG pages with ZIP download.
   - **Images ➔ PDF:** Compiles PNG, JPG, or WEBP images into standardized PDF files.
-  - **PDF Merge & Split:** Merges multiple PDFs or extracts page ranges locally in RAM.
+  - **Merge PDFs:** Combines multiple PDFs into a single continuous document.
+  - **Split PDF:** Splits documents into individual page PDFs or extracts custom page ranges.
+  - **Rotate PDF:** Permanently rotates pages clockwise or upside-down (90°, 180°, 270°).
+  - **Extract Text & Content:** Instant local text extraction with page demarcations and Markdown/Text export.
 - **🛡️ 100% Client-Side Privacy:** Zero files are sent to remote servers. All processing takes place in your local browser memory (WebAssembly) or on your desktop.
 - **⚖️ Clean Permissive Licensing:** Built with MIT, Apache-2.0, and BSD-3 libraries. Zero AGPL copyleft traps.
 

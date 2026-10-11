@@ -6,7 +6,8 @@ import os
 import shutil
 import unittest
 from PIL import Image
-from mddoc.pdf_tools import images_to_pdf, pdf_to_images, merge_pdfs, split_pdf
+from mddoc.pdf_tools import images_to_pdf, pdf_to_images, merge_pdfs, split_pdf, rotate_pdf, extract_pdf_text
+from pypdf import PdfReader
 
 
 class TestPdfTools(unittest.TestCase):
@@ -54,6 +55,22 @@ class TestPdfTools(unittest.TestCase):
         split_dir = os.path.join(self.tmp_dir, "split")
         splits = split_pdf(merged, split_dir)
         self.assertEqual(len(splits), 2)
+
+    def test_rotate_pdf(self):
+        p1 = os.path.join(self.tmp_dir, "p1.pdf")
+        images_to_pdf([self.img1_path], p1)
+        p1_rot = os.path.join(self.tmp_dir, "p1_rot.pdf")
+        rotate_pdf(p1, p1_rot, rotation=90)
+        self.assertTrue(os.path.exists(p1_rot))
+        reader = PdfReader(p1_rot)
+        self.assertEqual(reader.pages[0].rotation, 90)
+
+    def test_extract_pdf_text(self):
+        # Even on image-only or blank PDF, extract_pdf_text should return valid structured string
+        p1 = os.path.join(self.tmp_dir, "p1.pdf")
+        images_to_pdf([self.img1_path], p1)
+        text = extract_pdf_text(p1)
+        self.assertIn("Page 1 of 1", text)
 
 
 if __name__ == "__main__":

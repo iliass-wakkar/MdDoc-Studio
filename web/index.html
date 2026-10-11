@@ -395,6 +395,9 @@
                     <button class="pdf-subtab-btn active" id="subtab-btn-pdf2img" data-sub="pdf2img">🖼️ PDF ➔ Images (PNG)</button>
                     <button class="pdf-subtab-btn" id="subtab-btn-img2pdf" data-sub="img2pdf">📑 Images ➔ PDF</button>
                     <button class="pdf-subtab-btn" id="subtab-btn-merge" data-sub="merge">🔗 Merge PDFs</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-split" data-sub="split">✂️ Split PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-rotate" data-sub="rotate">🔄 Rotate PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-extract" data-sub="extract">📝 Extract Text</button>
                 </div>
 
                 <!-- PDF to Images -->
@@ -446,6 +449,74 @@
                     </div>
 
                     <ul class="file-queue-list" id="merge-queue-list"></ul>
+                </div>
+
+                <!-- Split PDF -->
+                <div class="pdf-panel-content" id="pdf-panel-split" style="display:none;">
+                    <div class="drop-zone-large" id="split-drop-zone">
+                        <span class="drop-giant-icon">✂️</span>
+                        <h3 class="drop-title">Select or drop a PDF document to split</h3>
+                        <p class="drop-sub">Extract every page as an individual PDF or extract specific page ranges</p>
+                        <input type="file" id="split-file-input" accept=".pdf" style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="split-action-bar" style="display:none;">
+                        <span id="split-status-text">No document loaded</span>
+                        <div class="tool-controls-cluster">
+                            <label class="control-label-inline" for="sel-split-mode">Mode:</label>
+                            <select id="sel-split-mode" class="studio-select-sm">
+                                <option value="all">Every Page to ZIP (.zip)</option>
+                                <option value="range">Extract Range (e.g. 1-3)</option>
+                            </select>
+                            <input type="text" id="inp-split-range" class="studio-input-sm" placeholder="1-3" style="display:none; width: 80px;">
+                            <button class="action-btn action-btn-accent" id="btn-execute-split">✂️ Split & Download</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rotate PDF -->
+                <div class="pdf-panel-content" id="pdf-panel-rotate" style="display:none;">
+                    <div class="drop-zone-large" id="rotate-drop-zone">
+                        <span class="drop-giant-icon">🔄</span>
+                        <h3 class="drop-title">Select or drop a PDF document to rotate</h3>
+                        <p class="drop-sub">Permanently rotate pages in standard 90°, 180°, or 270° increments</p>
+                        <input type="file" id="rotate-file-input" accept=".pdf" style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="rotate-action-bar" style="display:none;">
+                        <span id="rotate-status-text">No document loaded</span>
+                        <div class="tool-controls-cluster">
+                            <label class="control-label-inline" for="sel-rotate-angle">Angle:</label>
+                            <select id="sel-rotate-angle" class="studio-select-sm">
+                                <option value="90">90° Clockwise ↻</option>
+                                <option value="180">180° Upside Down ↻</option>
+                                <option value="270">270° (90° Counter-Clockwise ↺)</option>
+                            </select>
+                            <button class="action-btn action-btn-accent" id="btn-execute-rotate">🔄 Rotate & Download PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extract Text -->
+                <div class="pdf-panel-content" id="pdf-panel-extract" style="display:none;">
+                    <div class="drop-zone-large" id="extract-drop-zone">
+                        <span class="drop-giant-icon">📝</span>
+                        <h3 class="drop-title">Select or drop a PDF document to extract text</h3>
+                        <p class="drop-sub">Instant local text extraction with page separation and word counts</p>
+                        <input type="file" id="extract-file-input" accept=".pdf" style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="extract-action-bar" style="display:none;">
+                        <span id="extract-status-text">Extracted 0 words</span>
+                        <div class="tool-controls-cluster">
+                            <button class="action-btn action-btn-secondary" id="btn-copy-extracted">📋 Copy Text</button>
+                            <button class="action-btn action-btn-accent" id="btn-download-extracted">💾 Download Markdown (.md)</button>
+                        </div>
+                    </div>
+
+                    <div class="extracted-text-wrapper" id="extract-viewer-wrapper" style="display:none;">
+                        <textarea id="txt-extracted-content" class="extracted-textarea" readonly placeholder="Extracted text will appear here..."></textarea>
+                    </div>
                 </div>
 
             </div>

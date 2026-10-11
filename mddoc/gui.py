@@ -30,13 +30,13 @@ try:
     from .native_converter import parse_frontmatter, convert_markdown_to_docx
     from .docx_to_md import convert_docx_to_markdown
     from .typst_compiler import compile_markdown_to_typst, compile_typst_to_pdf
-    from .pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf
+    from .pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf, rotate_pdf, extract_pdf_text
 except (ImportError, ValueError):
     from mddoc.themes import THEMES, get_theme, create_custom_theme
     from mddoc.native_converter import parse_frontmatter, convert_markdown_to_docx
     from mddoc.docx_to_md import convert_docx_to_markdown
     from mddoc.typst_compiler import compile_markdown_to_typst, compile_typst_to_pdf
-    from mddoc.pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf
+    from mddoc.pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf, rotate_pdf, extract_pdf_text
 
 
 SAMPLE_MD_TEXT = """---
@@ -733,6 +733,39 @@ class MdDocModernApp(ctk.CTk):
         btn_mpdf = ctk.CTkButton(card3, text="Select PDFs to Merge", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_merge_pdfs)
         btn_mpdf.pack(anchor="w", padx=16, pady=(0, 14))
 
+        # Tool 4: Split PDF
+        card4 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card4.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card4, text="✂️ Tool 4: Split PDF into Individual Pages", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card4, text="Splits each page of a PDF into a separate standalone PDF file.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_split = ctk.CTkButton(card4, text="Select PDF & Split Pages", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_split_pdf)
+        btn_split.pack(anchor="w", padx=16, pady=(0, 14))
+
+        # Tool 5: Rotate PDF
+        card5 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card5.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card5, text="🔄 Tool 5: Rotate PDF Document Pages", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card5, text="Rotate pages clockwise or upside-down (90°, 180°, 270°).", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        rot_row = ctk.CTkFrame(card5, fg_color="transparent")
+        rot_row.pack(anchor="w", padx=16, pady=(0, 14))
+        self.opt_rotate_angle = ctk.CTkOptionMenu(
+            rot_row,
+            values=["90° Clockwise ↻", "180° Upside Down ↻", "270° (90° Counter-Clockwise ↺)"],
+            width=230,
+            fg_color=("#2563EB", "#2563EB")
+        )
+        self.opt_rotate_angle.pack(side="left", padx=(0, 10))
+        btn_rotate = ctk.CTkButton(rot_row, text="Select PDF & Rotate", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_rotate_pdf)
+        btn_rotate.pack(side="left")
+
+        # Tool 6: Extract Text from PDF
+        card6 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card6.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card6, text="📝 Tool 6: Extract Text & Content from PDF", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card6, text="Fast local text extraction without sending document contents over the internet.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_extract = ctk.CTkButton(card6, text="Select PDF & Extract Text", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_extract_pdf_text)
+        btn_extract.pack(anchor="w", padx=16, pady=(0, 14))
+
     # ==========================================
     # VIEW: THEMES & CUSTOM COLORS
     # ==========================================
@@ -1367,6 +1400,112 @@ class MdDocModernApp(ctk.CTk):
             messagebox.showinfo("PDFs Merged", f"Successfully merged {len(pdf_paths)} documents into:\n{out_pdf}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to merge PDFs:\n{e}")
+
+    def _action_split_pdf(self):
+        pdf_path = filedialog.askopenfilename(
+            title="Select PDF File to Split",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not pdf_path:
+            return
+        out_dir = filedialog.askdirectory(title="Select Folder to Save Split PDF Pages")
+        if not out_dir:
+            return
+        try:
+            files = split_pdf(pdf_path, out_dir)
+            messagebox.showinfo("PDF Split", f"Successfully split into {len(files)} individual PDF pages in:\n{out_dir}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to split PDF:\n{e}")
+
+    def _action_rotate_pdf(self):
+        pdf_path = filedialog.askopenfilename(
+            title="Select PDF File to Rotate",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not pdf_path:
+            return
+        
+        angle_choice = getattr(self, "opt_rotate_angle", None)
+        angle_str = angle_choice.get() if angle_choice else "90"
+        if "180" in angle_str:
+            degrees = 180
+        elif "270" in angle_str:
+            degrees = 270
+        else:
+            degrees = 90
+
+        base = os.path.splitext(pdf_path)[0]
+        out_pdf = filedialog.asksaveasfilename(
+            title="Save Rotated PDF",
+            initialfile=f"{os.path.basename(base)}_rotated.pdf",
+            defaultextension=".pdf",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not out_pdf:
+            return
+        try:
+            rotate_pdf(pdf_path, out_pdf, rotation=degrees)
+            messagebox.showinfo("PDF Rotated", f"Successfully rotated document ({degrees}°) and saved to:\n{out_pdf}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to rotate PDF:\n{e}")
+
+    def _action_extract_pdf_text(self):
+        pdf_path = filedialog.askopenfilename(
+            title="Select PDF File to Extract Text",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not pdf_path:
+            return
+        try:
+            extracted_text = extract_pdf_text(pdf_path)
+            if not extracted_text.strip():
+                messagebox.showwarning("Notice", "No extractable text found in this PDF (it might be a scanned image).")
+                return
+
+            # Open a clean modal viewer window
+            top = ctk.CTkToplevel(self)
+            top.title(f"Extracted Text - {os.path.basename(pdf_path)}")
+            top.geometry("750x550")
+            
+            top_bar = ctk.CTkFrame(top, fg_color="transparent")
+            top_bar.pack(fill="x", padx=16, pady=12)
+            
+            word_count = len(extracted_text.split())
+            ctk.CTkLabel(
+                top_bar, 
+                text=f"Extracted {word_count:,} words from {os.path.basename(pdf_path)}",
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold")
+            ).pack(side="left")
+
+            def copy_clip():
+                self.clipboard_clear()
+                self.clipboard_append(extracted_text)
+                messagebox.showinfo("Copied", "Text copied to clipboard!")
+
+            def save_file():
+                save_path = filedialog.asksaveasfilename(
+                    title="Save Extracted Text",
+                    initialfile=f"{os.path.splitext(os.path.basename(pdf_path))[0]}_extracted.md",
+                    defaultextension=".md",
+                    filetypes=[("Markdown / Text", "*.md;*.txt"), ("All Files", "*.*")]
+                )
+                if save_path:
+                    with open(save_path, "w", encoding="utf-8") as f:
+                        f.write(extracted_text)
+                    messagebox.showinfo("Saved", f"Saved to:\n{save_path}")
+
+            btn_save = ctk.CTkButton(top_bar, text="Save as .md / .txt", fg_color=("#2563EB", "#2563EB"), command=save_file)
+            btn_save.pack(side="right", padx=(8, 0))
+            btn_copy = ctk.CTkButton(top_bar, text="Copy to Clipboard", fg_color=("#475569", "#475569"), command=copy_clip)
+            btn_copy.pack(side="right")
+
+            txt_box = ctk.CTkTextbox(top, font=ctk.CTkFont(family="Consolas", size=12), wrap="word")
+            txt_box.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+            txt_box.insert("1.0", extracted_text)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to extract text:\n{e}")
+
 
 
 def launch_gui():

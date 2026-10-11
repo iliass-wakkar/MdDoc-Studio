@@ -1374,3 +1374,104 @@ body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 221, 0, 0.4);
 }
+
+/* PDF Toolbox Extended Controls */
+.tool-controls-cluster {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.control-label-inline {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.studio-select-sm,
+.studio-input-sm {
+    padding: 7px 12px;
+    font-size: 13px;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    background: #FFFFFF;
+    color: #0F172A;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.studio-select-sm:focus,
+.studio-input-sm:focus {
+    border-color: #2563EB;
+}
+
+.action-btn-secondary {
+    background: #F1F5F9;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.action-btn-secondary:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+
+.extracted-text-wrapper {
+    margin-top: 16px;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #FFFFFF;
+}
+
+.extracted-textarea {
+    width: 100%;
+    height: 380px;
+    padding: 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    border: none;
+    outline: none;
+    resize: vertical;
+    background: #F8FAFC;
+    color: #0F172A;
+    box-sizing: border-box;
+}
+
+/* Dark mode adjustments */
+body.theme-obsidian .studio-select-sm,
+body.theme-obsidian .studio-input-sm {
+    background: #0D1117;
+    border-color: #30363D;
+    color: #C9D1D9;
+}
+
+body.theme-obsidian .action-btn-secondary {
+    background: #21262D;
+    border-color: #30363D;
+    color: #C9D1D9;
+}
+
+body.theme-obsidian .action-btn-secondary:hover {
+    background: #30363D;
+    color: #FFFFFF;
+}
+
+body.theme-obsidian .extracted-text-wrapper {
+    border-color: #30363D;
+    background: #0D1117;
+}
+
+body.theme-obsidian .extracted-textarea {
+    background: #0D1117;
+    color: #C9D1D9;
+}
+

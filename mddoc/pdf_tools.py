@@ -154,3 +154,68 @@ def split_pdf(
             output_files.append(out_file)
 
     return output_files
+
+
+def rotate_pdf(
+    pdf_path: str,
+    output_pdf_path: str,
+    rotation: int = 90,
+    pages: Optional[List[int]] = None
+) -> str:
+    """
+    Rotate pages in a PDF document by a specified degree.
+    
+    Args:
+        pdf_path: Path to the input PDF.
+        output_pdf_path: Path to the output PDF.
+        rotation: Degrees to rotate clockwise (e.g., 90, 180, 270).
+        pages: Optional list of 1-indexed page numbers to rotate. If None, rotates all pages.
+        
+    Returns:
+        Absolute path to rotated PDF.
+    """
+    if rotation % 90 != 0:
+        raise ValueError("Rotation angle must be a multiple of 90 degrees.")
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_pdf_path)), exist_ok=True)
+    reader = PdfReader(pdf_path)
+    writer = PdfWriter()
+
+    for idx, page in enumerate(reader.pages):
+        page_num = idx + 1
+        if pages is None or page_num in pages:
+            page.rotate(rotation)
+        writer.add_page(page)
+
+    with open(output_pdf_path, "wb") as f:
+        writer.write(f)
+
+    return os.path.abspath(output_pdf_path)
+
+
+def extract_pdf_text(
+    pdf_path: str,
+    page_numbers: Optional[List[int]] = None
+) -> str:
+    """
+    Extract readable text content from PDF pages.
+    
+    Args:
+        pdf_path: Path to source PDF.
+        page_numbers: Optional list of 1-indexed page numbers to extract. If None, extracts all.
+        
+    Returns:
+        Extracted text formatted with page headings.
+    """
+    reader = PdfReader(pdf_path)
+    total_pages = len(reader.pages)
+    text_chunks = []
+
+    for idx, page in enumerate(reader.pages):
+        p_num = idx + 1
+        if page_numbers is None or p_num in page_numbers:
+            content = page.extract_text() or ""
+            text_chunks.append(f"<!-- Page {p_num} of {total_pages} -->\n{content.strip()}\n")
+
+    return "\n".join(text_chunks).strip()
+

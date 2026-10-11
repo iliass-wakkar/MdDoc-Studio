@@ -6,7 +6,7 @@ __version__ = "1.2.0"
 from .themes import THEMES, get_theme
 from .native_converter import convert_markdown_to_docx
 from .ir import markdown_to_ir, DocumentModel
-from .docx_to_md import convert_docx_to_markdown
+from .docx_to_md import convert_docx_to_markdown, convert_html_to_markdown
 from .typst_compiler import compile_markdown_to_typst, compile_ir_to_typst
 
 try:
@@ -26,6 +26,7 @@ except ImportError:
 __all__ = [
     "convert_markdown_to_docx",
     "convert_docx_to_markdown",
+    "convert_html_to_markdown",
     "compile_markdown_to_typst",
     "compile_ir_to_typst",
     "markdown_to_ir",

@@ -33,8 +33,12 @@ You can download the standalone desktop application directly from the **[GitHub 
 - **🎨 5 Curated Design Themes + Custom Hex Designer:** Modern Tech, Nordic Minimal, Academic Classic, Forest Moss, Corporate Blue, and custom user palettes.
 - **📄 Dual Publication Backends:**
   - **Word DOCX Engine:** Pure Python (`python-docx`) OpenXML with cover pages, zebra tables, and native heading hierarchy.
-  - **Typst Vector PDF Engine:** Modern Typst markup with micro-typographic kerning and high-speed compilation.
+  - **PDF Export:** Save a print-ready PDF from the browser print dialog; the Windows desktop app can compile vector PDFs when Typst is installed.
 - **🔄 Semantic Word (.docx) ➔ Markdown Converter:** Extracts headings, tables, bullet lists, bold/italics, and code blocks into clean GitHub-Flavored Markdown. Available directly in the browser and desktop app.
+- **DOCX ➔ PDF:** Create a readable PDF reconstruction from Word content. Layout and pagination may change; use Word's own PDF export when exact fidelity matters.
+- **HTML ⇄ Markdown:** Convert either direction, then copy or save the result. Available in the browser and Windows desktop app.
+- **TXT ➔ Word or PDF:** Open a plain text file in Markdown Studio, then choose the Word or PDF export action.
+- **PDF ➔ Markdown:** Extract selectable text with page breaks. Scanned pages require OCR before extraction.
 - **🛠️ Zero-Upload PDF Utility Toolbox:**
   - **PDF ➔ Images (PNG):** Extracts 200/300 DPI high-resolution PNG pages with ZIP download.
   - **Images ➔ PDF:** Compiles PNG, JPG, or WEBP images into standardized PDF files.
@@ -59,7 +63,7 @@ You can download the standalone desktop application directly from the **[GitHub 
 ### 🌐 2. Browser Web Studio & Cloudflare Pages (Public Web App)
 - **Local:** Double-click [`MdDoc_Web.bat`](file:///c:/Users/ilias/Documents/GitHub/MdDoc/MdDoc_Web.bat) or [`MdDoc_Web.vbs`](file:///c:/Users/ilias/Documents/GitHub/MdDoc/MdDoc_Web.vbs).
 - **Public Cloudflare Pages:** Connect this repository to [Cloudflare Pages](https://dash.cloudflare.com/) (Build dir: `web`) to deploy a **100% free, 24/7 public web service** powered by in-browser WebAssembly. See [DEPLOY_CLOUDFLARE.md](file:///c:/Users/ilias/Documents/GitHub/MdDoc/DEPLOY_CLOUDFLARE.md) for 2-minute setup!
-- Features: Drag-and-drop `.md` upload zone, interactive theme color palette cards, live split markdown editor, and one-click DOCX download.
+- Features: Markdown/Text to Word or browser-print PDF, Word to Markdown or reflowed PDF, PDF to Markdown, HTML ↔ Markdown, plus PDF page and image tools.
 
 ---
 

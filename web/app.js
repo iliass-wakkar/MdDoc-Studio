@@ -55,6 +55,8 @@ const CUSTOM_PRESETS = {
 let selectedTheme = "modern";
 let isEngineReady = false;
 let worker = null;
+const DRAFT_STORAGE_KEY = "mddoc-studio-draft-v1";
+let draftSaveTimer = null;
 
 // DOM Elements
 const mdInput = document.getElementById('markdown-input');
@@ -361,12 +363,91 @@ function updatePreview() {
         html += marked.parse(cleanMd);
     }
 
+    if (window.DOMPurify) html = DOMPurify.sanitize(html, { ADD_ATTR: ['style'] });
     previewContent.innerHTML = html;
     applyThemeToPreview(selectedTheme);
 }
 
 function escapeHtml(str) {
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function openPrintView(title, contentHtml, pageSize = 'A4') {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast('Allow pop-ups for this site to open the print view.', 'error');
+        return false;
+    }
+
+    const safeTitle = escapeHtml(title || 'Document');
+    const safePageSize = pageSize === 'Letter' ? 'Letter' : 'A4';
+    const theme = selectedTheme === 'custom' ? getCustomThemeStyles() : (THEME_STYLES[selectedTheme] || THEME_STYLES.modern);
+    const cssColor = (color, fallback) => /^#[0-9a-f]{6}$/i.test(color || '') ? color : fallback;
+    const cssFont = (font, fallback) => (font || fallback).replace(/[^a-zA-Z0-9,' _-]/g, '');
+    const printTheme = {
+        body: cssColor(theme.text, '#243443'),
+        heading: cssColor(theme.h1, '#183b56'),
+        accent: cssColor(theme.secondary, '#147d79'),
+        tableHeader: cssColor(theme.tableHeaderBg, '#183b56'),
+        headingFont: cssFont(theme.fontHeading, 'Cambria, Georgia, serif'),
+        bodyFont: cssFont(theme.fontBody, 'Calibri, Segoe UI, Arial, sans-serif')
+    };
+    const printHtml = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle}</title>
+<style>
+@page { size: ${safePageSize}; margin: 18mm; }
+* { box-sizing: border-box; }
+body { max-width: 820px; margin: 0 auto; color: ${printTheme.body}; font: 11pt/1.65 ${printTheme.bodyFont}; }
+h1,h2,h3,h4,h5,h6 { color: ${printTheme.heading}; font-family: ${printTheme.headingFont}; line-height: 1.25; margin: 1.35em 0 .5em; break-after: avoid; }
+h1 { font-size: 26pt; margin-top: 0; } h2 { font-size: 19pt; border-bottom: 1px solid #d8e1e6; padding-bottom: .2em; }
+p,ul,ol,blockquote,pre,table { margin: .8em 0; }
+a { color: ${printTheme.accent}; text-decoration: underline; }
+blockquote { border-left: 3px solid ${printTheme.accent}; margin-left: 0; padding: .2em 1em; color: #4b5d69; background: #f5f8f8; }
+pre,code { font-family: Consolas, "Courier New", monospace; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f6f7; border: 1px solid #dfe6e9; padding: 12px; border-radius: 4px; }
+code { background: #f1f4f5; padding: .12em .28em; border-radius: 3px; }
+pre code { background: transparent; padding: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 10pt; break-inside: avoid; }
+th { color: #fff; background: ${printTheme.tableHeader}; text-align: left; }
+th,td { border: 1px solid #cbd6dc; padding: 7px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: #f6f8f9; }
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid #d8e1e6; margin: 1.5em 0; }
+.print-cover { min-height: 230mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+.print-cover h1 { font-size: 34pt; margin: 0 0 .4em; }
+.print-subtitle { font-size: 16pt; color: #627583; }
+.print-byline { margin-top: 3em; color: #526574; }
+@media screen { body { padding: 28px; } }
+@media print { body { max-width: none; } a { color: inherit; } }
+</style></head><body>${contentHtml}</body></html>`;
+
+    let printStarted = false;
+    const startPrint = () => {
+        if (printStarted || printWindow.closed) return;
+        printStarted = true;
+        printWindow.focus();
+        printWindow.print();
+    };
+    printWindow.addEventListener('load', startPrint, { once: true });
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    window.setTimeout(startPrint, 400);
+    return true;
+}
+
+function buildMarkdownPrintHtml(markdown) {
+    const cleanMarkdown = markdown.replace(/^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*[\r\n]+/, '');
+    let html = window.marked ? marked.parse(cleanMarkdown) : `<pre>${escapeHtml(cleanMarkdown)}</pre>`;
+    if (window.DOMPurify) html = DOMPurify.sanitize(html);
+    if (!chkCover.checked) return html;
+
+    const title = inpTitle.value.trim() || 'Document';
+    const subtitle = inpSubtitle.value.trim();
+    const author = inpAuthor.value.trim();
+    const cover = `<section class="print-cover"><h1>${escapeHtml(title)}</h1>${subtitle ? `<p class="print-subtitle">${escapeHtml(subtitle)}</p>` : ''}${author ? `<p class="print-byline">${escapeHtml(author)}</p>` : ''}</section>`;
+    return cover + html;
 }
 
 // Frontmatter Auto-Extractor
@@ -387,15 +468,36 @@ function checkAndApplyFrontmatter(text) {
             if (key === "cover_page") chkCover.checked = (val.toLowerCase() === "true");
             if (key === "toc") chkToc.checked = (val.toLowerCase() === "true");
             if (key === "header" || key === "running_header") if (chkHeader) chkHeader.checked = (val.toLowerCase() === "true");
+            if (key === "page_size" && ["A4", "Letter"].includes(val)) selPageSize.value = val;
         }
     });
+}
+
+function loadMarkdownDocument(text) {
+    mdInput.value = text;
+    inpTitle.value = '';
+    inpSubtitle.value = '';
+    inpAuthor.value = '';
+    chkCover.checked = false;
+    chkToc.checked = false;
+    chkHeader.checked = false;
+    selPageSize.value = 'A4';
+    selectTheme('modern');
+    checkAndApplyFrontmatter(text);
+    updatePreview();
+    scheduleDraftSave();
 }
 
 // Theme Selector
 function selectTheme(themeName) {
     const target = document.querySelector(`.theme-option[data-theme="${themeName}"]`);
     if (target) {
-        document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.theme-option').forEach(el => {
+            const selected = el === target;
+            el.classList.toggle('active', selected);
+            el.setAttribute('aria-checked', String(selected));
+            el.tabIndex = selected ? 0 : -1;
+        });
         target.classList.add('active');
         selectedTheme = themeName;
 
@@ -406,6 +508,75 @@ function selectTheme(themeName) {
 
         applyThemeToPreview(themeName);
         updatePreview();
+    }
+}
+
+function setDraftStatus(message) {
+    const status = document.getElementById('draft-status');
+    if (status) status.textContent = message;
+}
+
+function saveDraft() {
+    try {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
+            markdown: mdInput.value,
+            title: inpTitle.value,
+            subtitle: inpSubtitle.value,
+            author: inpAuthor.value,
+            theme: selectedTheme,
+            cover: chkCover.checked,
+            toc: chkToc.checked,
+            header: chkHeader.checked,
+            pageSize: selPageSize.value,
+            custom: {
+                primary: pickerPrimary.value,
+                secondary: pickerSecondary.value,
+                accent: pickerAccent.value,
+                headingFont: selFontHeading.value,
+                bodyFont: selFontBody.value
+            }
+        }));
+        setDraftStatus('Draft saved on this device');
+    } catch (error) {
+        setDraftStatus('Draft could not be saved');
+    }
+}
+
+function scheduleDraftSave() {
+    setDraftStatus('Saving draft…');
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(saveDraft, 400);
+}
+
+function restoreDraft() {
+    try {
+        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!saved) return false;
+        const draft = JSON.parse(saved);
+        if (!draft || typeof draft.markdown !== 'string') return false;
+
+        mdInput.value = draft.markdown;
+        inpTitle.value = draft.title || '';
+        inpSubtitle.value = draft.subtitle || '';
+        inpAuthor.value = draft.author || '';
+        if (typeof draft.cover === 'boolean') chkCover.checked = draft.cover;
+        if (typeof draft.toc === 'boolean') chkToc.checked = draft.toc;
+        if (typeof draft.header === 'boolean') chkHeader.checked = draft.header;
+        if (draft.pageSize === 'A4' || draft.pageSize === 'Letter') selPageSize.value = draft.pageSize;
+        if (draft.custom && typeof draft.custom === 'object') {
+            if (/^#[0-9a-f]{6}$/i.test(draft.custom.primary || '')) pickerPrimary.value = hexPrimary.value = draft.custom.primary;
+            if (/^#[0-9a-f]{6}$/i.test(draft.custom.secondary || '')) pickerSecondary.value = hexSecondary.value = draft.custom.secondary;
+            if (/^#[0-9a-f]{6}$/i.test(draft.custom.accent || '')) pickerAccent.value = hexAccent.value = draft.custom.accent;
+            if (draft.custom.headingFont && [...selFontHeading.options].some(option => option.value === draft.custom.headingFont)) selFontHeading.value = draft.custom.headingFont;
+            if (draft.custom.bodyFont && [...selFontBody.options].some(option => option.value === draft.custom.bodyFont)) selFontBody.value = draft.custom.bodyFont;
+        }
+        updateCustomSwatches();
+        if (document.querySelector(`.theme-option[data-theme="${draft.theme}"]`)) selectTheme(draft.theme);
+        setDraftStatus('Draft restored from this device');
+        return true;
+    } catch (error) {
+        setDraftStatus('Draft storage unavailable');
+        return false;
     }
 }
 
@@ -422,6 +593,7 @@ function setupCustomThemeListeners() {
         picker.addEventListener('input', () => {
             hexInput.value = picker.value.toUpperCase();
             updateCustomSwatches();
+            scheduleDraftSave();
             if (selectedTheme === "custom") {
                 applyThemeToPreview("custom");
                 updatePreview();
@@ -433,6 +605,7 @@ function setupCustomThemeListeners() {
             if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
                 picker.value = v;
                 updateCustomSwatches();
+                scheduleDraftSave();
                 if (selectedTheme === "custom") {
                     applyThemeToPreview("custom");
                     updatePreview();
@@ -449,6 +622,7 @@ function setupCustomThemeListeners() {
         if (el) {
             el.addEventListener('change', () => {
                 updateCustomSwatches();
+                scheduleDraftSave();
                 if (selectedTheme === "custom") {
                     applyThemeToPreview("custom");
                     updatePreview();
@@ -474,6 +648,7 @@ function setupCustomThemeListeners() {
 
                 updateCustomSwatches();
                 selectTheme("custom");
+                scheduleDraftSave();
                 showToast(`Applied "${btn.innerText}" preset!`, "success");
             }
         });
@@ -482,38 +657,75 @@ function setupCustomThemeListeners() {
 
 // Tab Switching
 function setupTabs() {
-    tabEditorBtn.addEventListener('click', () => {
-        tabEditorBtn.classList.add('active');
-        tabPreviewBtn.classList.remove('active');
-        editorTabView.classList.add('active');
-        previewTabView.classList.remove('active');
-    });
+    const activateTab = (name, focus = false) => {
+        const editorActive = name === 'editor';
+        tabEditorBtn.classList.toggle('active', editorActive);
+        tabPreviewBtn.classList.toggle('active', !editorActive);
+        tabEditorBtn.setAttribute('aria-selected', String(editorActive));
+        tabPreviewBtn.setAttribute('aria-selected', String(!editorActive));
+        tabEditorBtn.tabIndex = editorActive ? 0 : -1;
+        tabPreviewBtn.tabIndex = editorActive ? -1 : 0;
+        editorTabView.classList.toggle('active', editorActive);
+        previewTabView.classList.toggle('active', !editorActive);
+        editorTabView.setAttribute('aria-hidden', String(!editorActive));
+        previewTabView.setAttribute('aria-hidden', String(editorActive));
+        if (!editorActive) updatePreview();
+        if (focus) (editorActive ? tabEditorBtn : tabPreviewBtn).focus();
+    };
 
-    tabPreviewBtn.addEventListener('click', () => {
-        tabPreviewBtn.classList.add('active');
-        tabEditorBtn.classList.remove('active');
-        previewTabView.classList.add('active');
-        editorTabView.classList.remove('active');
-        updatePreview();
+    tabEditorBtn.addEventListener('click', () => activateTab('editor'));
+    tabPreviewBtn.addEventListener('click', () => activateTab('preview'));
+    [tabEditorBtn, tabPreviewBtn].forEach((button) => {
+        button.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            activateTab(button === tabEditorBtn ? 'preview' : 'editor', true);
+        });
+    });
+}
+
+function setupDropZoneAccessibility() {
+    document.querySelectorAll('.drop-zone-large').forEach((zone) => {
+        const fileInput = zone.querySelector('input[type="file"]');
+        const title = zone.querySelector('.drop-title');
+        zone.setAttribute('role', 'button');
+        zone.tabIndex = 0;
+        if (title) zone.setAttribute('aria-label', title.textContent.trim());
+        if (fileInput) zone.setAttribute('aria-controls', fileInput.id);
+        zone.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                if (fileInput) fileInput.click();
+            }
+        });
     });
 }
 
 // Drag and Drop & File Input
 function setupFileUpload() {
+    const btnOpenFile = document.getElementById('btn-open-file');
     const handleFile = (file) => {
         if (!file) return;
+        if (!/\.(md|markdown|txt)$/i.test(file.name)) {
+            showToast('Choose a Markdown or text file (.md, .markdown, .txt).', 'error');
+            return;
+        }
         const reader = new FileReader();
         reader.onload = (e) => {
-            mdInput.value = e.target.result;
-            checkAndApplyFrontmatter(e.target.result);
-            updatePreview();
+            const contents = e.target.result;
+            const markdown = /\.txt$/i.test(file.name)
+                ? contents.split(/\r?\n/).map(line => line.trim() ? `${line}  ` : '').join('\n')
+                : contents;
+            loadMarkdownDocument(markdown);
             showToast(`Loaded "${file.name}"`, "success");
         };
         reader.readAsText(file);
     };
 
+    if (btnOpenFile) btnOpenFile.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleFile(e.target.files[0]);
+        e.target.value = '';
     });
 
     window.addEventListener('dragover', (e) => {
@@ -536,6 +748,7 @@ function setupFileUpload() {
 
 // Export Trigger
 function setupExport() {
+    const btnExportPdf = document.getElementById('btn-export-pdf');
     const triggerExport = () => {
         const text = mdInput.value.trim();
         if (!text) {
@@ -610,7 +823,16 @@ function setupExport() {
         });
     };
 
+    const triggerPrintPdf = () => {
+        const text = mdInput.value.trim();
+        if (!text) return showToast('Please enter or upload Markdown or text first.', 'error');
+        const title = inpTitle.value.trim() || 'document';
+        const opened = openPrintView(title, buildMarkdownPrintHtml(text), selPageSize.value);
+        if (opened) showToast('Print view opened. Choose “Save as PDF” in the browser print dialog.', 'success');
+    };
+
     if (btnExport) btnExport.addEventListener('click', triggerExport);
+    if (btnExportPdf) btnExportPdf.addEventListener('click', triggerPrintPdf);
     if (btnHeaderExport) btnHeaderExport.addEventListener('click', triggerExport);
     if (btnToolbarExport) btnToolbarExport.addEventListener('click', triggerExport);
     if (btnExportTypst) btnExportTypst.addEventListener('click', triggerTypstExport);
@@ -618,7 +840,7 @@ function setupExport() {
 
 function onTypstSuccess(typstSource) {
     if (btnExportTypst) btnExportTypst.disabled = false;
-    if (btnTypstText) btnTypstText.innerText = "Export Typst / PDF (.typ)";
+    if (btnTypstText) btnTypstText.innerText = "Download Typst source (.typ)";
 
     const blob = new Blob([typstSource], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -660,12 +882,12 @@ function onExportSuccess(uint8Array) {
     if (downloadBox) {
         downloadBox.style.display = 'block';
         downloadBox.innerHTML = `
-            <div class="download-box-text">🎉 Word Document Ready!</div>
-            <a href="${url}" download="${fileName}">⬇️ Click to Re-Download (${fileName})</a>
+            <div class="download-box-text">Word document ready</div>
+            <a href="${url}" download="${fileName}">Download again (${fileName})</a>
         `;
     }
 
-    showToast(`✔ Downloaded "${fileName}" successfully!`, "success");
+    showToast(`Downloaded "${fileName}" successfully.`, "success");
 }
 
 function onExportError(errMsg) {
@@ -673,7 +895,7 @@ function onExportError(errMsg) {
     if (btnHeaderExport) btnHeaderExport.disabled = false;
     if (btnToolbarExport) btnToolbarExport.disabled = false;
     if (btnText) btnText.innerText = "Download Word Document (.docx)";
-    showToast("❌ Conversion failed: " + errMsg, "error");
+    showToast("Conversion failed: " + errMsg, "error");
 }
 
 function showToast(msg, type) {
@@ -683,7 +905,9 @@ function showToast(msg, type) {
 }
 
 // In-App Modal Dialog
-function showModal({ icon = "⚠️", title = "Confirmation", message = "", confirmText = "Confirm", isDanger = false, onConfirm }) {
+let modalReturnFocus = null;
+
+function showModal({ icon = "!", title = "Confirmation", message = "", confirmText = "Confirm", isDanger = false, onConfirm }) {
     const modal = document.getElementById('app-modal');
     const mIcon = document.getElementById('modal-icon');
     const mTitle = document.getElementById('modal-title');
@@ -699,14 +923,37 @@ function showModal({ icon = "⚠️", title = "Confirmation", message = "", conf
     mConfirm.innerText = confirmText;
     mConfirm.className = `modal-btn ${isDanger ? 'modal-btn-danger' : 'modal-btn-primary'}`;
     
+    modalReturnFocus = document.activeElement;
     modal.style.display = 'flex';
+
+    const handleModalKeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeModal();
+        } else if (event.key === 'Tab') {
+            const focusables = [mCancel, mConfirm];
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    };
     
     const closeModal = () => {
         modal.style.display = 'none';
+        modal.removeEventListener('keydown', handleModalKeydown);
         mConfirm.onclick = null;
         mCancel.onclick = null;
+        if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
     };
     
+    modal.addEventListener('keydown', handleModalKeydown);
+    mCancel.focus();
     mCancel.onclick = closeModal;
     mConfirm.onclick = () => {
         closeModal();
@@ -724,29 +971,39 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFileUpload();
     setupExport();
     setupCustomThemeListeners();
+    setupDropZoneAccessibility();
 
     // Theme card clicks
     document.querySelectorAll('.theme-option').forEach(card => {
         card.addEventListener('click', () => {
             selectTheme(card.dataset.theme);
+            scheduleDraftSave();
+        });
+        card.addEventListener('keydown', (event) => {
+            const cards = [...document.querySelectorAll('.theme-option')];
+            const current = cards.indexOf(card);
+            let next = current;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % cards.length;
+            else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + cards.length) % cards.length;
+            else if (event.key === ' ' || event.key === 'Enter') next = current;
+            else return;
+            event.preventDefault();
+            selectTheme(cards[next].dataset.theme);
+            cards[next].focus();
+            scheduleDraftSave();
         });
     });
 
     // Sample button
     btnSample.addEventListener('click', () => {
-        mdInput.value = SAMPLE_MARKDOWN;
-        inpTitle.value = "MdDoc Architecture & Specification";
-        inpSubtitle.value = "High-Performance Markdown to Publication-Quality Word DOCX";
-        inpAuthor.value = "Engineering Team";
-        selectTheme("modern");
-        updatePreview();
+        loadMarkdownDocument(SAMPLE_MARKDOWN);
         showToast("Loaded sample document.", "success");
     });
 
     // Clear button with In-App Modal Dialog
     btnClear.addEventListener('click', () => {
         showModal({
-            icon: "🗑️",
+            icon: "!",
             title: "Clear Editor Content?",
             message: "Are you sure you want to clear all Markdown content? This action cannot be undone.",
             confirmText: "Yes, Clear All",
@@ -754,6 +1011,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onConfirm: () => {
                 mdInput.value = "";
                 updatePreview();
+                saveDraft();
+                setDraftStatus('Empty draft saved on this device');
                 showToast("Editor content cleared.", "success");
             }
         });
@@ -764,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mdInput.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updatePreview, 300);
+        scheduleDraftSave();
     });
 
     // Auto-update preview when metadata or toggles change
@@ -771,22 +1031,28 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('input', () => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(updatePreview, 150);
+            scheduleDraftSave();
         });
     });
-    chkCover.addEventListener('change', updatePreview);
+    [chkCover, chkToc, chkHeader, selPageSize].forEach(el => {
+        el.addEventListener('change', () => {
+            if (el === chkCover) updatePreview();
+            scheduleDraftSave();
+        });
+    });
 
     // Multi-Mode Studio Setups
     setupStudioNavigation();
     setupDocxConverter();
+    setupHtmlMarkdownConverter();
     setupPdfToolbox();
 
     // Initial setup
     updateCustomSwatches();
-    mdInput.value = SAMPLE_MARKDOWN;
-    inpTitle.value = "MdDoc Architecture & Specification";
-    inpSubtitle.value = "High-Performance Markdown to Publication-Quality Word DOCX";
-    inpAuthor.value = "Engineering Team";
-    selectTheme("modern");
+    if (!restoreDraft()) {
+        loadMarkdownDocument(SAMPLE_MARKDOWN);
+        saveDraft();
+    }
     updatePreview();
 });
 
@@ -797,30 +1063,47 @@ function setupStudioNavigation() {
     const btnModeMd = document.getElementById('btn-mode-markdown');
     const btnModeDocx = document.getElementById('btn-mode-docx');
     const btnModePdf = document.getElementById('btn-mode-pdf');
+    const btnModeHtml = document.getElementById('btn-mode-html');
 
     const viewMd = document.getElementById('view-mode-markdown');
     const viewDocx = document.getElementById('view-mode-docx');
     const viewPdf = document.getElementById('view-mode-pdf');
+    const viewHtml = document.getElementById('view-mode-html');
+    const buttons = [btnModeMd, btnModeDocx, btnModePdf, btnModeHtml];
+    const views = [viewMd, viewDocx, viewPdf, viewHtml];
+    const modes = ['markdown', 'docx', 'pdf', 'html'];
 
     const switchMode = (mode) => {
-        [btnModeMd, btnModeDocx, btnModePdf].forEach(b => b && b.classList.remove('active'));
-        [viewMd, viewDocx, viewPdf].forEach(v => v && (v.style.display = 'none'));
-
-        if (mode === 'markdown') {
-            if (btnModeMd) btnModeMd.classList.add('active');
-            if (viewMd) viewMd.style.display = 'block';
-        } else if (mode === 'docx') {
-            if (btnModeDocx) btnModeDocx.classList.add('active');
-            if (viewDocx) viewDocx.style.display = 'block';
-        } else if (mode === 'pdf') {
-            if (btnModePdf) btnModePdf.classList.add('active');
-            if (viewPdf) viewPdf.style.display = 'block';
-        }
+        const activeIndex = modes.indexOf(mode);
+        if (activeIndex < 0) return;
+        buttons.forEach((button, index) => {
+            if (!button) return;
+            const selected = index === activeIndex;
+            button.classList.toggle('active', selected);
+            button.setAttribute('aria-selected', String(selected));
+            button.tabIndex = selected ? 0 : -1;
+        });
+        views.forEach((view, index) => {
+            if (!view) return;
+            const selected = index === activeIndex;
+            view.style.display = selected ? 'block' : 'none';
+            view.setAttribute('aria-hidden', String(!selected));
+        });
     };
 
-    if (btnModeMd) btnModeMd.addEventListener('click', () => switchMode('markdown'));
-    if (btnModeDocx) btnModeDocx.addEventListener('click', () => switchMode('docx'));
-    if (btnModePdf) btnModePdf.addEventListener('click', () => switchMode('pdf'));
+    buttons.forEach((button, index) => {
+        if (!button) return;
+        button.addEventListener('click', () => switchMode(modes[index]));
+        button.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const delta = event.key === 'ArrowRight' ? 1 : -1;
+            const nextIndex = (index + delta + buttons.length) % buttons.length;
+            buttons[nextIndex].click();
+            buttons[nextIndex].focus();
+        });
+    });
+    switchMode('markdown');
 }
 
 // ==========================================================================
@@ -838,7 +1121,10 @@ function setupDocxConverter() {
 
     const btnCopy = document.getElementById('btn-copy-docx-md');
     const btnDownload = document.getElementById('btn-download-docx-md');
+    const btnDocxToPdf = document.getElementById('btn-docx-to-pdf');
     const btnOpenInStudio = document.getElementById('btn-open-in-studio');
+    let latestDocxHtml = '';
+    let latestDocxName = 'document';
 
     if (!dropZone || !fileInput) return;
 
@@ -856,6 +1142,7 @@ function setupDocxConverter() {
     });
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleDocxFile(e.target.files[0]);
+        e.target.value = '';
     });
 
     const handleDocxFile = async (file) => {
@@ -863,6 +1150,9 @@ function setupDocxConverter() {
             showToast("Please select a valid Microsoft Word (.docx) document.", "error");
             return;
         }
+
+        latestDocxHtml = '';
+        latestDocxName = file.name.replace(/\.docx$/i, '') || 'document';
 
         showToast(`Converting "${file.name}" locally in browser...`, "success");
 
@@ -887,6 +1177,8 @@ function setupDocxConverter() {
 
             // Sanitize with DOMPurify
             const cleanHtml = window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+            latestDocxHtml = cleanHtml;
+            latestDocxName = file.name.replace(/\.docx$/i, '') || 'document';
 
             // Convert to Markdown with Turndown + GFM plugin
             const turndownService = new TurndownService({
@@ -940,13 +1232,19 @@ function setupDocxConverter() {
         });
     }
 
+    if (btnDocxToPdf) {
+        btnDocxToPdf.addEventListener('click', () => {
+            if (!latestDocxHtml) return showToast('Open a Word document first.', 'error');
+            const opened = openPrintView(latestDocxName, latestDocxHtml, 'A4');
+            if (opened) showToast('Word content opened as a print-ready reconstruction. Choose “Save as PDF” to export.', 'success');
+        });
+    }
+
     if (btnOpenInStudio) {
         btnOpenInStudio.addEventListener('click', () => {
             const text = outputArea.value.trim();
             if (!text) return showToast("No Markdown to load into Studio.", "error");
-            mdInput.value = text;
-            checkAndApplyFrontmatter(text);
-            updatePreview();
+            loadMarkdownDocument(text);
             document.getElementById('btn-mode-markdown').click();
             showToast("Document opened in Markdown Studio!", "success");
         });
@@ -954,6 +1252,128 @@ function setupDocxConverter() {
 }
 
 // ==========================================================================
+// CLIENT-SIDE HTML ↔ MARKDOWN CONVERTER
+// ========================================================================
+function setupHtmlMarkdownConverter() {
+    const direction = document.getElementById('html-convert-direction');
+    const fileInput = document.getElementById('conversion-file-input');
+    const openFile = document.getElementById('btn-open-conversion-file');
+    const source = document.getElementById('conversion-source');
+    const output = document.getElementById('conversion-output');
+    const sourceLabel = document.getElementById('conversion-source-label');
+    const outputLabel = document.getElementById('conversion-output-label');
+    const hint = document.getElementById('conversion-hint');
+    const btnConvert = document.getElementById('btn-run-conversion');
+    const btnCopy = document.getElementById('btn-copy-conversion');
+    const btnDownload = document.getElementById('btn-download-conversion');
+    const btnOpenInStudio = document.getElementById('btn-open-conversion-in-studio');
+    let sourceName = 'converted';
+
+    if (!direction || !fileInput || !source || !output) return;
+
+    const isHtmlToMarkdown = () => direction.value === 'html-to-md';
+    const updateDirection = (reset = false) => {
+        const htmlToMd = isHtmlToMarkdown();
+        sourceLabel.textContent = htmlToMd ? 'HTML source' : 'Markdown source';
+        outputLabel.textContent = htmlToMd ? 'Markdown result' : 'HTML document';
+        source.placeholder = htmlToMd ? 'Paste HTML here, or open an .html file…' : 'Write or paste Markdown here, or open an .md or .txt file…';
+        fileInput.accept = htmlToMd ? '.html,.htm,.xhtml,text/html' : '.md,.markdown,.txt,text/plain';
+        hint.textContent = htmlToMd
+            ? 'HTML styling is simplified to semantic Markdown. Linked assets remain references to their original locations.'
+            : 'Creates a self-contained HTML document with readable typography and safe, sanitized content.';
+        btnOpenInStudio.hidden = !htmlToMd;
+        if (reset) {
+            source.value = '';
+            output.value = '';
+            sourceName = 'converted';
+        }
+    };
+
+    direction.addEventListener('change', () => updateDirection(true));
+    openFile.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        const expected = isHtmlToMarkdown() ? /\.(html?|xhtml)$/i : /\.(md|markdown|txt)$/i;
+        if (!expected.test(file.name)) {
+            showToast(isHtmlToMarkdown() ? 'Choose an HTML file (.html, .htm, .xhtml).' : 'Choose a Markdown or text file (.md, .markdown, .txt).', 'error');
+            event.target.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            source.value = String(reader.result || '');
+            output.value = '';
+            sourceName = file.name.replace(/\.(html?|xhtml|markdown|md|txt)$/i, '') || 'converted';
+            showToast(`Loaded "${file.name}"`, 'success');
+        };
+        reader.onerror = () => showToast('Could not read this file.', 'error');
+        reader.readAsText(file);
+        event.target.value = '';
+    });
+
+    btnConvert.addEventListener('click', () => {
+        const text = source.value.trim();
+        if (!text) return showToast('Paste content or open a file first.', 'error');
+        try {
+            if (isHtmlToMarkdown()) {
+                if (!window.TurndownService) throw new Error('HTML conversion engine is not loaded. Check your connection and reload the page.');
+                const safeHtml = window.DOMPurify ? DOMPurify.sanitize(text) : text;
+                const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+                if (window.turndownPluginGfm && turndown.use) turndown.use(turndownPluginGfm.gfm);
+                output.value = turndown.turndown(safeHtml).trim();
+            } else {
+                if (!window.marked) throw new Error('Markdown conversion engine is not loaded. Check your connection and reload the page.');
+                const markdownSource = text.replace(/^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*[\r\n]+/, '');
+                const body = marked.parse(markdownSource);
+                const safeBody = window.DOMPurify ? DOMPurify.sanitize(body) : body;
+                const title = escapeHtml(sourceName.replace(/[_-]+/g, ' '));
+                output.value = `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${title}</title>\n<style>body{max-width:820px;margin:48px auto;padding:0 24px;color:#243443;font:16px/1.7 Segoe UI,Arial,sans-serif}h1,h2,h3{color:#183b56;line-height:1.25}h2{border-bottom:1px solid #d8e1e6;padding-bottom:.25em}a{color:#146e74}blockquote{border-left:3px solid #147d79;margin-left:0;padding:.2em 1em;color:#526574;background:#f5f8f8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f7;border:1px solid #dfe6e9;padding:12px}code{font-family:Consolas,monospace;background:#f1f4f5;padding:.12em .28em}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd6dc;padding:7px 9px;text-align:left}th{background:#183b56;color:#fff}img{max-width:100%;height:auto}</style>\n</head>\n<body>\n${safeBody}\n</body>\n</html>`;
+            }
+            showToast('Conversion complete.', 'success');
+        } catch (err) {
+            console.error('HTML / Markdown conversion failed:', err);
+            showToast(err.message || 'Conversion failed.', 'error');
+        }
+    });
+
+    btnCopy.addEventListener('click', async () => {
+        if (!output.value.trim()) return showToast('Convert some content first.', 'error');
+        try {
+            await navigator.clipboard.writeText(output.value);
+        } catch (err) {
+            output.focus();
+            output.select();
+            document.execCommand('copy');
+        }
+        showToast('Result copied to clipboard.', 'success');
+    });
+
+    btnDownload.addEventListener('click', () => {
+        if (!output.value.trim()) return showToast('Convert some content first.', 'error');
+        const extension = isHtmlToMarkdown() ? '.md' : '.html';
+        const mime = isHtmlToMarkdown() ? 'text/markdown;charset=utf-8' : 'text/html;charset=utf-8';
+        const blob = new Blob([output.value], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${sourceName}${extension}`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    btnOpenInStudio.addEventListener('click', () => {
+        if (!isHtmlToMarkdown() || !output.value.trim()) return showToast('Convert HTML to Markdown first.', 'error');
+        loadMarkdownDocument(output.value);
+        document.getElementById('btn-mode-markdown').click();
+        showToast('Markdown opened in the editor.', 'success');
+    });
+
+    updateDirection();
+}
+
 // CLIENT-SIDE PDF TOOLBOX (PDF.JS, PDF-LIB, JSZIP)
 // ==========================================================================
 function setupPdfToolbox() {
@@ -963,10 +1383,30 @@ function setupPdfToolbox() {
         btn.addEventListener('click', () => {
             subtabs.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            subtabs.forEach(b => {
+                const selected = b === btn;
+                b.setAttribute('aria-selected', String(selected));
+                b.tabIndex = selected ? 0 : -1;
+            });
             const sub = btn.dataset.sub;
-            document.querySelectorAll('.pdf-panel-content').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.pdf-panel-content').forEach(p => {
+                p.style.display = 'none';
+                p.setAttribute('aria-hidden', 'true');
+            });
             const target = document.getElementById(`pdf-panel-${sub}`);
-            if (target) target.style.display = 'block';
+            if (target) {
+                target.style.display = 'block';
+                target.setAttribute('aria-hidden', 'false');
+            }
+        });
+        btn.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const current = [...subtabs].indexOf(btn);
+            const delta = event.key === 'ArrowRight' ? 1 : -1;
+            const next = subtabs[(current + delta + subtabs.length) % subtabs.length];
+            next.click();
+            next.focus();
         });
     });
 
@@ -1031,7 +1471,7 @@ function setupPdfToolbox() {
                 card.innerHTML = `
                     <div class="page-thumb-meta">
                         <span>Page ${pageNum}</span>
-                        <button class="btn-thumb-download" data-page="${pageNum}">⬇️ Save PNG</button>
+                        <button class="btn-thumb-download" data-page="${pageNum}">Save PNG</button>
                     </div>
                 `;
                 card.insertBefore(canvas, card.firstChild);
@@ -1108,15 +1548,21 @@ function setupPdfToolbox() {
         loadedImages.forEach((img, idx) => {
             const item = document.createElement('div');
             item.className = 'queue-item';
-            item.innerHTML = `
-                <span>🖼️ Image ${idx + 1}: <strong>${img.name}</strong> (${(img.size / 1024).toFixed(1)} KB)</span>
-                <button class="action-btn" style="color:#EF4444;" data-idx="${idx}">✕ Remove</button>
-            `;
-            item.querySelector('button').onclick = () => {
+            const label = document.createElement('span');
+            const filename = document.createElement('strong');
+            filename.textContent = img.name;
+            label.append(`Image ${idx + 1}: `, filename, ` (${(img.size / 1024).toFixed(1)} KB)`);
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'action-btn';
+            removeButton.style.color = '#b42318';
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => {
                 loadedImages.splice(idx, 1);
                 renderImagesList();
                 i2pStatus.innerText = `${loadedImages.length} images queued`;
             };
+            item.append(label, removeButton);
             i2pGrid.appendChild(item);
         });
     }
@@ -1198,15 +1644,21 @@ function setupPdfToolbox() {
         pdfFilesToMerge.forEach((pdf, idx) => {
             const li = document.createElement('li');
             li.className = 'queue-item';
-            li.innerHTML = `
-                <span>📄 Document ${idx + 1}: <strong>${pdf.name}</strong> (${(pdf.size / 1024).toFixed(1)} KB)</span>
-                <button class="action-btn" style="color:#EF4444;" data-idx="${idx}">✕ Remove</button>
-            `;
-            li.querySelector('button').onclick = () => {
+            const label = document.createElement('span');
+            const filename = document.createElement('strong');
+            filename.textContent = pdf.name;
+            label.append(`Document ${idx + 1}: `, filename, ` (${(pdf.size / 1024).toFixed(1)} KB)`);
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'action-btn';
+            removeButton.style.color = '#b42318';
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => {
                 pdfFilesToMerge.splice(idx, 1);
                 renderMergeQueue();
                 mStatus.innerText = `${pdfFilesToMerge.length} PDFs queued`;
             };
+            li.append(label, removeButton);
             mQueue.appendChild(li);
         });
     }
@@ -1446,6 +1898,7 @@ function setupPdfToolbox() {
     const txtExtracted = document.getElementById('txt-extracted-content');
     const btnCopyExtracted = document.getElementById('btn-copy-extracted');
     const btnDownloadExtracted = document.getElementById('btn-download-extracted');
+    const btnOpenExtractedInStudio = document.getElementById('btn-open-extracted-in-studio');
 
     let currentExtractedText = "";
     let extractedDocName = "document";
@@ -1522,6 +1975,15 @@ function setupPdfToolbox() {
             a.click();
             a.remove();
             showToast(`Saved "${extractedDocName}_extracted.md"!`, "success");
+        });
+    }
+
+    if (btnOpenExtractedInStudio) {
+        btnOpenExtractedInStudio.addEventListener('click', () => {
+            if (!currentExtractedText) return showToast('Extract text from a PDF first.', 'error');
+            loadMarkdownDocument(currentExtractedText);
+            document.getElementById('btn-mode-markdown').click();
+            showToast('PDF text opened in the Markdown editor.', 'success');
         });
     }
 }

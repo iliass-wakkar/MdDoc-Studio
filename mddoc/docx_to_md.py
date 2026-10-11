@@ -133,13 +133,52 @@ def _process_inline_children(elem: Tag) -> str:
             elif t == "a":
                 href = child.get("href", "")
                 out.append(f"[{inner}]({href})" if href else inner)
+            elif t == "img":
+                src = child.get("src", "")
+                alt = child.get("alt", "")
+                out.append(f"![{alt}]({src})" if src else alt)
             elif t == "br":
                 out.append("\n")
-            elif t in ("ul", "ol", "table", "blockquote", "p"):
+            elif t in ("ul", "ol", "table", "blockquote", "p", "h1", "h2", "h3", "h4", "h5", "h6", "div", "section", "article", "main", "header", "footer"):
                 out.append(_element_to_markdown(child))
             else:
                 out.append(inner)
     return "".join(out)
+
+
+def convert_html_to_markdown(html_text: str) -> str:
+    """Convert an HTML fragment or document to clean semantic Markdown."""
+    soup = BeautifulSoup(html_text or "", "html.parser")
+    for unwanted in soup.find_all(["script", "style", "noscript", "iframe"]):
+        unwanted.decompose()
+    root = soup.body if soup.body else soup
+    md_blocks = []
+    for elem in root.children:
+        if isinstance(elem, Tag):
+            block_text = _element_to_markdown(elem).strip()
+            if block_text:
+                md_blocks.append(block_text)
+    full_md = "\n\n".join(md_blocks)
+    return re.sub(r"\n{3,}", "\n\n", full_md).strip()
+
+
+def sanitize_html_fragment(html_text: str) -> str:
+    """Remove executable HTML from generated, locally saved HTML documents."""
+    soup = BeautifulSoup(html_text or "", "html.parser")
+    for unwanted in soup.find_all(["script", "iframe", "object", "embed"]):
+        unwanted.decompose()
+    for tag in soup.find_all(True):
+        for attr_name in list(tag.attrs):
+            normalized_name = attr_name.lower()
+            value = tag.attrs.get(attr_name)
+            if normalized_name.startswith("on"):
+                del tag.attrs[attr_name]
+                continue
+            if normalized_name in {"href", "src", "action", "formaction", "xlink:href"} and isinstance(value, str):
+                compact_value = re.sub(r"[\x00-\x20]+", "", value).lower()
+                if compact_value.startswith(("javascript:", "vbscript:", "data:text/html")):
+                    del tag.attrs[attr_name]
+    return str(soup)
 
 
 DEFAULT_STYLE_MAP = """

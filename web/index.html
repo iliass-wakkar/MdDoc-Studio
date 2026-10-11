@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MdDoc Studio — Markdown to Publication-Quality Word & PDF</title>
-    <meta name="description" content="Free, 100% private client-side document engineering studio. Convert Markdown to Word (.docx) and PDF, DOCX to Markdown, and run PDF tools in browser memory with zero server uploads.">
+    <meta name="description" content="Private document studio for converting Markdown, Word, HTML, text, and PDF files locally in your browser.">
     <link rel="canonical" href="https://stylemymarkdown.com/">
     <meta property="og:title" content="MdDoc Studio — Markdown to Publication-Quality Word & PDF">
-    <meta property="og:description" content="100% private in-browser document studio. Converts Markdown to Word (.docx) and PDF with custom typography, cover pages, tables, and callouts.">
+    <meta property="og:description" content="Convert Markdown, Word, HTML, text, and PDF files locally in your browser.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css?v=1.2.0">
+    <link rel="stylesheet" href="style.css?v=1.3.0-conversions">
 
     <!-- Schema.org SoftwareApplication JSON-LD for Google Rich Results -->
     <script type="application/ld+json">
@@ -23,7 +23,7 @@
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web Browser, Windows",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "description": "Convert Markdown to publication-quality Word DOCX and PDF with auto cover pages, booktabs tables, callouts, and custom themes. Runs 100% locally in your browser."
+      "description": "Convert Markdown, Word, HTML, text, and PDF files locally in your browser."
     }
     </script>
 
@@ -44,38 +44,43 @@
             <div class="brand">
                 <div class="brand-icon">
                     <img src="assets/icon.png" alt="MdDoc Logo" width="32" height="32" onerror="this.style.display='none'">
-                    <span class="fallback-logo">📄</span>
+                    <span class="fallback-logo" aria-hidden="true">MD</span>
                 </div>
                 <div class="brand-text">
                     <h1 class="brand-title">MdDoc Studio</h1>
-                    <span class="brand-tagline">Markdown to Publication-Quality DOCX</span>
+                    <span class="brand-tagline">A document studio that runs on your device</span>
                 </div>
             </div>
 
             <div class="header-badges">
-                <button class="header-btn-export" id="btn-header-export">
-                    <span>⬇️</span> Download .docx
-                </button>
+                <span class="status-badge loading" id="engine-status" role="status" aria-live="polite">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span id="status-text">Preparing document engine…</span>
+                </span>
+                <span class="draft-status" id="draft-status" aria-live="polite">Draft stays on this device</span>
             </div>
         </div>
     </header>
 
     <!-- Studio Mode Switcher Bar -->
-    <nav class="studio-nav-bar">
+    <nav class="studio-nav-bar" aria-label="Document tools">
         <div class="studio-nav-container">
-            <div class="studio-tabs">
-                <button class="studio-tab-btn active" id="btn-mode-markdown" data-mode="markdown">
-                    <span class="tab-icon">📝</span> Markdown Studio
+            <div class="studio-tabs" role="tablist" aria-label="Choose a document task">
+                <button class="studio-tab-btn active" id="btn-mode-markdown" data-mode="markdown" role="tab" aria-selected="true" aria-controls="view-mode-markdown" tabindex="0">
+                    Markdown to Word / PDF
                 </button>
-                <button class="studio-tab-btn" id="btn-mode-docx" data-mode="docx">
-                    <span class="tab-icon">🔄</span> Word (.docx) ➔ Markdown
+                <button class="studio-tab-btn" id="btn-mode-docx" data-mode="docx" role="tab" aria-selected="false" aria-controls="view-mode-docx" tabindex="-1">
+                    Word to Markdown
                 </button>
-                <button class="studio-tab-btn" id="btn-mode-pdf" data-mode="pdf">
-                    <span class="tab-icon">📄</span> PDF Toolbox
+                <button class="studio-tab-btn" id="btn-mode-pdf" data-mode="pdf" role="tab" aria-selected="false" aria-controls="view-mode-pdf" tabindex="-1">
+                    PDF tools
+                </button>
+                <button class="studio-tab-btn" id="btn-mode-html" data-mode="html" role="tab" aria-selected="false" aria-controls="view-mode-html" tabindex="-1">
+                    HTML ↔ Markdown
                 </button>
             </div>
             <div class="privacy-pill">
-                <span class="privacy-dot"></span> 100% In-Browser • Zero Cloud Uploads
+                <span class="privacy-dot" aria-hidden="true"></span> Files stay in your browser
             </div>
         </div>
     </nav>
@@ -84,44 +89,42 @@
     <main class="workspace-container">
         
         <!-- MODE 1: MARKDOWN STUDIO -->
-        <div class="studio-mode-view active" id="view-mode-markdown">
+        <div class="studio-mode-view active" id="view-mode-markdown" role="tabpanel" aria-labelledby="btn-mode-markdown" tabindex="0">
             <div class="workspace-grid">
             
             <!-- Left Pane: Editor & Live Preview -->
             <section class="editor-pane">
                 <div class="card editor-card">
                     <div class="tab-header">
-                        <div class="tabs">
-                            <button class="tab-btn active" id="tab-editor-btn" data-tab="editor">
-                                <span>✏️ Markdown Editor</span>
+                        <div class="tabs" role="tablist" aria-label="Editor view">
+                            <button class="tab-btn active" id="tab-editor-btn" data-tab="editor" role="tab" aria-selected="true" aria-controls="editor-tab-view" tabindex="0">
+                                Markdown
                             </button>
-                            <button class="tab-btn" id="tab-preview-btn" data-tab="preview">
-                                <span>👁️ Live Preview</span>
+                            <button class="tab-btn" id="tab-preview-btn" data-tab="preview" role="tab" aria-selected="false" aria-controls="preview-tab-view" tabindex="-1">
+                                Preview
                             </button>
                         </div>
 
                         <div class="editor-actions">
-                            <button class="action-btn" id="btn-sample" title="Load sample document">📋 Sample</button>
-                            <button class="action-btn" id="btn-clear" title="Clear editor">🗑️ Clear</button>
-                            <label class="action-btn file-upload-btn" title="Open .md file from device">
-                                📂 Open File
-                                <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none;">
-                            </label>
+                            <button class="action-btn" id="btn-sample" title="Load sample document">Load sample</button>
+                            <button class="action-btn" id="btn-clear" title="Clear editor">Clear</button>
+                            <button type="button" class="action-btn" id="btn-open-file" title="Open a Markdown or plain text file from your device">Open .md or .txt</button>
+                            <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none;">
                         </div>
                     </div>
 
                     <!-- Drop Zone Banner -->
                     <div class="drop-banner" id="drop-banner">
-                        <span class="drop-icon">📥</span> Drag & drop any <code>.md</code> file here to load
+                    Drop a <code>.md</code> or <code>.txt</code> file here, or choose <strong>Open .md or .txt</strong>
                     </div>
 
                     <!-- Tab 1: Editor View -->
-                    <div class="tab-content active" id="editor-tab-view">
-                        <textarea id="markdown-input" spellcheck="false" placeholder="Write or paste your Markdown here..."></textarea>
+                    <div class="tab-content active" id="editor-tab-view" role="tabpanel" aria-labelledby="tab-editor-btn">
+                        <textarea id="markdown-input" aria-label="Markdown editor" spellcheck="false" placeholder="Write or paste your Markdown here..."></textarea>
                     </div>
 
                     <!-- Tab 2: HTML Live Preview View -->
-                    <div class="tab-content" id="preview-tab-view">
+                    <div class="tab-content" id="preview-tab-view" role="tabpanel" aria-labelledby="tab-preview-btn" aria-hidden="true">
                         <div class="preview-container markdown-body" id="preview-content"></div>
                     </div>
                 </div>
@@ -133,25 +136,24 @@
                 <!-- ⬇️ PRIMARY DOWNLOAD ACTION CARD (At the very top of sidebar) -->
                 <div class="card primary-download-card">
                     <button class="btn-export" id="btn-export">
-                        <span class="btn-icon">⬇️</span>
                         <span id="btn-text">Download Word (.docx)</span>
                     </button>
+                    <button class="btn-export-secondary" id="btn-export-pdf" title="Open the browser print dialog; choose Save as PDF">
+                        Print / save as PDF
+                    </button>
                     <button class="btn-export-secondary" id="btn-export-typst">
-                        <span class="btn-icon">📄</span>
-                        <span id="btn-typst-text">Export Typst / PDF (.typ)</span>
+                        <span id="btn-typst-text">Download Typst source (.typ)</span>
                     </button>
                     <div id="download-box" class="download-box" style="display:none;"></div>
-                    <div id="status-toast" class="status-toast"></div>
+                    <div id="status-toast" class="status-toast" role="status" aria-live="polite" aria-atomic="true"></div>
                 </div>
 
                 <!-- Theme Selector Card -->
                 <div class="card theme-card-section">
-                    <h2 class="card-heading">
-                        <span>🎨</span> Design Theme
-                    </h2>
+                    <h2 class="card-heading">Document theme</h2>
                     
-                    <div class="theme-grid">
-                        <div class="theme-option active" data-theme="modern">
+                    <div class="theme-grid" role="radiogroup" aria-label="Document theme">
+                        <div class="theme-option active" data-theme="modern" role="radio" aria-checked="true" tabindex="0">
                             <div class="theme-info">
                                 <span class="theme-name">Modern Tech</span>
                                 <span class="theme-fonts">Cambria • Deep Navy & Teal</span>
@@ -163,7 +165,7 @@
                             </div>
                         </div>
 
-                        <div class="theme-option" data-theme="nordic">
+                        <div class="theme-option" data-theme="nordic" role="radio" aria-checked="false" tabindex="-1">
                             <div class="theme-info">
                                 <span class="theme-name">Nordic Minimal</span>
                                 <span class="theme-fonts">Segoe UI • Charcoal & Polar Blue</span>
@@ -175,7 +177,7 @@
                             </div>
                         </div>
 
-                        <div class="theme-option" data-theme="academic">
+                        <div class="theme-option" data-theme="academic" role="radio" aria-checked="false" tabindex="-1">
                             <div class="theme-info">
                                 <span class="theme-name">Academic Classic</span>
                                 <span class="theme-fonts">Georgia • Oxford Blue & Amber</span>
@@ -187,7 +189,7 @@
                             </div>
                         </div>
 
-                        <div class="theme-option" data-theme="forest">
+                        <div class="theme-option" data-theme="forest" role="radio" aria-checked="false" tabindex="-1">
                             <div class="theme-info">
                                 <span class="theme-name">Forest Moss</span>
                                 <span class="theme-fonts">Cambria • Evergreen & Sage</span>
@@ -199,7 +201,7 @@
                             </div>
                         </div>
 
-                        <div class="theme-option" data-theme="corporate">
+                        <div class="theme-option" data-theme="corporate" role="radio" aria-checked="false" tabindex="-1">
                             <div class="theme-info">
                                 <span class="theme-name">Corporate Blue</span>
                                 <span class="theme-fonts">Arial • Executive Navy & Cyan</span>
@@ -212,9 +214,9 @@
                         </div>
 
                         <!-- Custom Palette Option -->
-                        <div class="theme-option" data-theme="custom">
+                        <div class="theme-option" data-theme="custom" role="radio" aria-checked="false" tabindex="-1">
                             <div class="theme-info">
-                                <span class="theme-name">✨ Custom Palette</span>
+                            <span class="theme-name">Custom palette</span>
                                 <span class="theme-fonts" id="custom-fonts-label">Custom Fonts & Colors</span>
                             </div>
                             <div class="color-palette">
@@ -227,13 +229,13 @@
 
                     <!-- Collapsible Custom Palette Controls -->
                     <div id="custom-theme-panel" class="custom-theme-panel" style="display:none;">
-                        <div class="custom-panel-title">🎨 Custom Theme Designer</div>
+                        <div class="custom-panel-title">Custom theme</div>
                         
                         <div class="preset-chips">
-                            <button type="button" class="preset-btn" data-preset="violet">💜 Violet</button>
-                            <button type="button" class="preset-btn" data-preset="sunset">🌅 Sunset</button>
-                            <button type="button" class="preset-btn" data-preset="emerald">🍃 Emerald</button>
-                            <button type="button" class="preset-btn" data-preset="amber">☕ Amber</button>
+                            <button type="button" class="preset-btn" data-preset="violet">Violet</button>
+                            <button type="button" class="preset-btn" data-preset="sunset">Sunset</button>
+                            <button type="button" class="preset-btn" data-preset="emerald">Emerald</button>
+                            <button type="button" class="preset-btn" data-preset="amber">Amber</button>
                         </div>
 
                         <div class="color-pickers-row">
@@ -292,9 +294,7 @@
 
                 <!-- Document Settings Card -->
                 <div class="card settings-card">
-                    <h2 class="card-heading">
-                        <span>⚙️</span> Layout & Metadata
-                    </h2>
+                    <h2 class="card-heading">Page layout</h2>
 
                     <div class="switch-group">
                         <label class="toggle-switch">
@@ -339,7 +339,7 @@
                 </div>
 
                 <div class="privacy-note">
-                    ⚡ <strong>Zero Cloud Calls:</strong> Documents are converted 100% locally in your browser using WebAssembly. No files ever touch an external server.
+                    <strong>Private by default</strong> · Drafts save here when browser storage is available. Files are processed locally and are never uploaded.
                 </div>
 
             </aside>
@@ -347,23 +347,24 @@
         </div> <!-- End of view-mode-markdown -->
 
         <!-- MODE 2: WORD (.DOCX) TO MARKDOWN CONVERTER -->
-        <section class="studio-mode-view" id="view-mode-docx" style="display:none;">
+        <section class="studio-mode-view" id="view-mode-docx" role="tabpanel" aria-labelledby="btn-mode-docx" tabindex="0" style="display:none;">
             <div class="card converter-view-card">
                 <div class="converter-view-header">
                     <div>
-                        <h2 class="mode-view-title">🔄 Microsoft Word (.docx) ➔ Semantic Markdown</h2>
-                        <p class="mode-view-subtitle">Converts headings, booktabs tables, bullet lists, bold/italics, and code blocks into clean GitHub-Flavored Markdown. 100% in-browser.</p>
+                        <h2 class="mode-view-title">Convert Word to Markdown or PDF</h2>
+                        <p class="mode-view-subtitle">Extract editable Markdown or create a print-ready PDF reconstruction. Processing stays in this browser.</p>
                     </div>
                     <div class="converter-top-actions">
-                        <button class="action-btn" id="btn-copy-docx-md" title="Copy markdown to clipboard">📋 Copy Markdown</button>
-                        <button class="action-btn" id="btn-download-docx-md" title="Download .md file">💾 Download .md</button>
-                        <button class="action-btn action-btn-accent" id="btn-open-in-studio" title="Send to Markdown Studio editor">🚀 Open in Markdown Studio</button>
+                        <button class="action-btn" id="btn-copy-docx-md" title="Copy Markdown to clipboard">Copy Markdown</button>
+                        <button class="action-btn" id="btn-download-docx-md" title="Download a Markdown file">Download .md</button>
+                        <button class="action-btn" id="btn-docx-to-pdf" title="Open a reconstructed print view; choose Save as PDF">Print / save as PDF</button>
+                        <button class="action-btn action-btn-accent" id="btn-open-in-studio" title="Open this document in Markdown Studio">Open in editor</button>
                     </div>
                 </div>
 
                 <div class="drop-zone-large" id="docx-drop-zone">
-                    <span class="drop-giant-icon">📥</span>
-                    <h3 class="drop-title">Drag & Drop your <code>.docx</code> document here</h3>
+                    <span class="drop-giant-icon" aria-hidden="true">📥</span>
+                    <h3 class="drop-title">Open a <code>.docx</code> document</h3>
                     <p class="drop-sub">or click anywhere in this box to browse from your computer</p>
                     <input type="file" id="docx-file-input" accept=".docx" style="display:none;">
                 </div>
@@ -376,34 +377,34 @@
                 </div>
 
                 <div class="docx-output-area">
-                    <textarea id="docx-markdown-output" spellcheck="false" placeholder="Your converted Markdown will appear here in real-time..."></textarea>
+                    <textarea id="docx-markdown-output" aria-label="Converted Markdown" spellcheck="false" placeholder="Your converted Markdown will appear here..."></textarea>
                 </div>
             </div>
         </section>
 
         <!-- MODE 3: PDF TOOLBOX -->
-        <section class="studio-mode-view" id="view-mode-pdf" style="display:none;">
+        <section class="studio-mode-view" id="view-mode-pdf" role="tabpanel" aria-labelledby="btn-mode-pdf" tabindex="0" style="display:none;">
             <div class="card pdf-toolbox-card">
                 <div class="converter-view-header">
                     <div>
-                        <h2 class="mode-view-title">📄 Zero-Upload Private PDF Toolbox</h2>
-                        <p class="mode-view-subtitle">Convert PDF pages to high-res PNGs, assemble images into PDFs, or merge documents without uploading files to third-party servers.</p>
+                        <h2 class="mode-view-title">PDF tools</h2>
+                        <p class="mode-view-subtitle">Convert, combine, split, rotate, and extract text from files locally in your browser.</p>
                     </div>
                 </div>
 
-                <div class="pdf-subtabs-nav">
-                    <button class="pdf-subtab-btn active" id="subtab-btn-pdf2img" data-sub="pdf2img">🖼️ PDF ➔ Images (PNG)</button>
-                    <button class="pdf-subtab-btn" id="subtab-btn-img2pdf" data-sub="img2pdf">📑 Images ➔ PDF</button>
-                    <button class="pdf-subtab-btn" id="subtab-btn-merge" data-sub="merge">🔗 Merge PDFs</button>
-                    <button class="pdf-subtab-btn" id="subtab-btn-split" data-sub="split">✂️ Split PDF</button>
-                    <button class="pdf-subtab-btn" id="subtab-btn-rotate" data-sub="rotate">🔄 Rotate PDF</button>
-                    <button class="pdf-subtab-btn" id="subtab-btn-extract" data-sub="extract">📝 Extract Text</button>
+                <div class="pdf-subtabs-nav" role="tablist" aria-label="Choose a PDF task">
+                    <button class="pdf-subtab-btn active" id="subtab-btn-pdf2img" data-sub="pdf2img" role="tab" aria-selected="true" aria-controls="pdf-panel-pdf2img" tabindex="0">PDF to images</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-img2pdf" data-sub="img2pdf" role="tab" aria-selected="false" aria-controls="pdf-panel-img2pdf" tabindex="-1">Images to PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-merge" data-sub="merge" role="tab" aria-selected="false" aria-controls="pdf-panel-merge" tabindex="-1">Merge PDFs</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-split" data-sub="split" role="tab" aria-selected="false" aria-controls="pdf-panel-split" tabindex="-1">Split PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-rotate" data-sub="rotate" role="tab" aria-selected="false" aria-controls="pdf-panel-rotate" tabindex="-1">Rotate PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-extract" data-sub="extract" role="tab" aria-selected="false" aria-controls="pdf-panel-extract" tabindex="-1">PDF → Markdown</button>
                 </div>
 
                 <!-- PDF to Images -->
-                <div class="pdf-panel-content active" id="pdf-panel-pdf2img">
+                <div class="pdf-panel-content active" id="pdf-panel-pdf2img" role="tabpanel" aria-labelledby="subtab-btn-pdf2img" aria-hidden="false">
                     <div class="drop-zone-large" id="pdf2img-drop-zone">
-                        <span class="drop-giant-icon">📄</span>
+                        <span class="drop-giant-icon" aria-hidden="true">📄</span>
                         <h3 class="drop-title">Select or drop a PDF to extract every page as PNG</h3>
                         <p class="drop-sub">Rendered via Mozilla PDF.js inside browser memory</p>
                         <input type="file" id="pdf2img-file-input" accept=".pdf" style="display:none;">
@@ -418,9 +419,9 @@
                 </div>
 
                 <!-- Images to PDF -->
-                <div class="pdf-panel-content" id="pdf-panel-img2pdf" style="display:none;">
+                <div class="pdf-panel-content" id="pdf-panel-img2pdf" role="tabpanel" aria-labelledby="subtab-btn-img2pdf" aria-hidden="true" style="display:none;">
                     <div class="drop-zone-large" id="img2pdf-drop-zone">
-                        <span class="drop-giant-icon">🖼️</span>
+                        <span class="drop-giant-icon" aria-hidden="true">🖼️</span>
                         <h3 class="drop-title">Select or drop multiple images (PNG, JPG, WEBP)</h3>
                         <p class="drop-sub">Compiled into standard vector PDF pages with pdf-lib</p>
                         <input type="file" id="img2pdf-file-input" accept="image/*" multiple style="display:none;">
@@ -428,16 +429,16 @@
 
                     <div class="tool-action-bar" id="img2pdf-action-bar" style="display:none;">
                         <span id="img2pdf-status-text">0 images loaded</span>
-                        <button class="action-btn action-btn-accent" id="btn-compile-images-pdf">📄 Generate & Download PDF</button>
+                        <button class="action-btn action-btn-accent" id="btn-compile-images-pdf">Generate & download PDF</button>
                     </div>
 
                     <div class="selected-images-grid" id="img2pdf-preview-grid"></div>
                 </div>
 
                 <!-- Merge PDFs -->
-                <div class="pdf-panel-content" id="pdf-panel-merge" style="display:none;">
+                <div class="pdf-panel-content" id="pdf-panel-merge" role="tabpanel" aria-labelledby="subtab-btn-merge" aria-hidden="true" style="display:none;">
                     <div class="drop-zone-large" id="merge-drop-zone">
-                        <span class="drop-giant-icon">🔗</span>
+                        <span class="drop-giant-icon" aria-hidden="true">🔗</span>
                         <h3 class="drop-title">Select or drop 2 or more PDF documents</h3>
                         <p class="drop-sub">Merged into a single continuous PDF document</p>
                         <input type="file" id="merge-file-input" accept=".pdf" multiple style="display:none;">
@@ -445,16 +446,16 @@
 
                     <div class="tool-action-bar" id="merge-action-bar" style="display:none;">
                         <span id="merge-status-text">0 PDF files queued</span>
-                        <button class="action-btn action-btn-accent" id="btn-execute-merge">⚡ Merge & Download PDF</button>
+                        <button class="action-btn action-btn-accent" id="btn-execute-merge">Merge & download PDF</button>
                     </div>
 
                     <ul class="file-queue-list" id="merge-queue-list"></ul>
                 </div>
 
                 <!-- Split PDF -->
-                <div class="pdf-panel-content" id="pdf-panel-split" style="display:none;">
+                <div class="pdf-panel-content" id="pdf-panel-split" role="tabpanel" aria-labelledby="subtab-btn-split" aria-hidden="true" style="display:none;">
                     <div class="drop-zone-large" id="split-drop-zone">
-                        <span class="drop-giant-icon">✂️</span>
+                        <span class="drop-giant-icon" aria-hidden="true">✂️</span>
                         <h3 class="drop-title">Select or drop a PDF document to split</h3>
                         <p class="drop-sub">Extract every page as an individual PDF or extract specific page ranges</p>
                         <input type="file" id="split-file-input" accept=".pdf" style="display:none;">
@@ -468,16 +469,16 @@
                                 <option value="all">Every Page to ZIP (.zip)</option>
                                 <option value="range">Extract Range (e.g. 1-3)</option>
                             </select>
-                            <input type="text" id="inp-split-range" class="studio-input-sm" placeholder="1-3" style="display:none; width: 80px;">
-                            <button class="action-btn action-btn-accent" id="btn-execute-split">✂️ Split & Download</button>
+                            <input type="text" id="inp-split-range" class="studio-input-sm" aria-label="Pages to extract" placeholder="1-3" style="display:none; width: 80px;">
+                            <button class="action-btn action-btn-accent" id="btn-execute-split">Split & download</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Rotate PDF -->
-                <div class="pdf-panel-content" id="pdf-panel-rotate" style="display:none;">
+                <div class="pdf-panel-content" id="pdf-panel-rotate" role="tabpanel" aria-labelledby="subtab-btn-rotate" aria-hidden="true" style="display:none;">
                     <div class="drop-zone-large" id="rotate-drop-zone">
-                        <span class="drop-giant-icon">🔄</span>
+                        <span class="drop-giant-icon" aria-hidden="true">🔄</span>
                         <h3 class="drop-title">Select or drop a PDF document to rotate</h3>
                         <p class="drop-sub">Permanently rotate pages in standard 90°, 180°, or 270° increments</p>
                         <input type="file" id="rotate-file-input" accept=".pdf" style="display:none;">
@@ -492,33 +493,76 @@
                                 <option value="180">180° Upside Down ↻</option>
                                 <option value="270">270° (90° Counter-Clockwise ↺)</option>
                             </select>
-                            <button class="action-btn action-btn-accent" id="btn-execute-rotate">🔄 Rotate & Download PDF</button>
+                            <button class="action-btn action-btn-accent" id="btn-execute-rotate">Rotate & download PDF</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Extract Text -->
-                <div class="pdf-panel-content" id="pdf-panel-extract" style="display:none;">
+                <div class="pdf-panel-content" id="pdf-panel-extract" role="tabpanel" aria-labelledby="subtab-btn-extract" aria-hidden="true" style="display:none;">
                     <div class="drop-zone-large" id="extract-drop-zone">
-                        <span class="drop-giant-icon">📝</span>
-                        <h3 class="drop-title">Select or drop a PDF document to extract text</h3>
-                        <p class="drop-sub">Instant local text extraction with page separation and word counts</p>
+                        <span class="drop-giant-icon" aria-hidden="true">📝</span>
+                        <h3 class="drop-title">Extract readable text from a PDF</h3>
+                        <p class="drop-sub">Creates editable Markdown with page breaks. Scanned pages need OCR first.</p>
                         <input type="file" id="extract-file-input" accept=".pdf" style="display:none;">
                     </div>
 
                     <div class="tool-action-bar" id="extract-action-bar" style="display:none;">
                         <span id="extract-status-text">Extracted 0 words</span>
                         <div class="tool-controls-cluster">
-                            <button class="action-btn action-btn-secondary" id="btn-copy-extracted">📋 Copy Text</button>
-                            <button class="action-btn action-btn-accent" id="btn-download-extracted">💾 Download Markdown (.md)</button>
+                            <button class="action-btn action-btn-secondary" id="btn-copy-extracted">Copy Markdown</button>
+                            <button class="action-btn action-btn-accent" id="btn-download-extracted">Download Markdown (.md)</button>
+                            <button class="action-btn" id="btn-open-extracted-in-studio">Open in Markdown editor</button>
                         </div>
                     </div>
 
                     <div class="extracted-text-wrapper" id="extract-viewer-wrapper" style="display:none;">
-                        <textarea id="txt-extracted-content" class="extracted-textarea" readonly placeholder="Extracted text will appear here..."></textarea>
+                        <textarea id="txt-extracted-content" class="extracted-textarea" aria-label="Extracted PDF text" readonly placeholder="Extracted text will appear here..."></textarea>
                     </div>
                 </div>
 
+            </div>
+        </section>
+
+        <!-- MODE 4: HTML ↔ MARKDOWN -->
+        <section class="studio-mode-view" id="view-mode-html" role="tabpanel" aria-labelledby="btn-mode-html" tabindex="0" style="display:none;" aria-hidden="true">
+            <div class="card converter-view-card html-converter-card">
+                <div class="converter-view-header">
+                    <div>
+                        <h2 class="mode-view-title">HTML ↔ Markdown</h2>
+                        <p class="mode-view-subtitle">Convert between editable Markdown and a self-contained HTML file. Everything stays on this device.</p>
+                    </div>
+                    <div class="html-converter-controls">
+                        <label class="control-label-inline" for="html-convert-direction">Convert</label>
+                        <select id="html-convert-direction" class="studio-select-sm">
+                            <option value="html-to-md">HTML to Markdown</option>
+                            <option value="md-to-html">Markdown to HTML</option>
+                        </select>
+                        <button class="action-btn" id="btn-open-conversion-file">Open file</button>
+                        <input type="file" id="conversion-file-input" accept=".html,.htm,text/html" hidden>
+                    </div>
+                </div>
+
+                <div class="conversion-workspace">
+                    <div class="conversion-editor-column">
+                        <label class="conversion-editor-label" id="conversion-source-label" for="conversion-source">HTML source</label>
+                        <textarea id="conversion-source" spellcheck="false" placeholder="Paste HTML here, or open an .html file…"></textarea>
+                    </div>
+                    <div class="conversion-editor-column">
+                        <label class="conversion-editor-label" id="conversion-output-label" for="conversion-output">Markdown result</label>
+                        <textarea id="conversion-output" spellcheck="false" readonly placeholder="Your converted content will appear here…"></textarea>
+                    </div>
+                </div>
+
+                <div class="conversion-footer">
+                    <p class="conversion-hint" id="conversion-hint">HTML styling is simplified to semantic Markdown. Images are kept when they use embedded data URLs.</p>
+                    <div class="converter-top-actions">
+                        <button class="action-btn action-btn-accent" id="btn-run-conversion">Convert</button>
+                        <button class="action-btn" id="btn-copy-conversion">Copy result</button>
+                        <button class="action-btn" id="btn-download-conversion">Download result</button>
+                        <button class="action-btn" id="btn-open-conversion-in-studio" hidden>Open in Markdown editor</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -534,7 +578,7 @@
                     <h3 class="footer-brand-title">MdDoc Studio</h3>
                 </div>
                 <p class="footer-desc">
-                    A zero-cloud, client-side Markdown to publication-quality Microsoft Word (.docx) document generator. Runs locally in your browser via WebAssembly with complete privacy.
+                    A local document studio for converting Markdown, Word, HTML, text, and PDF files without uploading your documents.
                 </p>
                 <div class="footer-tags">
                     <span class="ftag">WebAssembly (WASM)</span>
@@ -607,9 +651,9 @@
     </footer>
 
     <!-- In-App Reusable Modal Popup Dialog -->
-    <div id="app-modal" class="modal-overlay" style="display:none;">
+    <div id="app-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-body" style="display:none;">
         <div class="modal-card">
-            <div class="modal-icon" id="modal-icon">⚠️</div>
+            <div class="modal-icon" id="modal-icon" aria-hidden="true">!</div>
             <h3 class="modal-title" id="modal-title">Clear Document?</h3>
             <p class="modal-body" id="modal-body">This will erase all content in the editor.</p>
             <div class="modal-actions">
@@ -619,6 +663,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.1.0"></script>
+    <script src="app.js?v=1.2.0-ui"></script>
 </body>
 </html>

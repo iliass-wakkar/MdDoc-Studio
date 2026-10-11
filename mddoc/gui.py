@@ -28,9 +28,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 try:
     from .themes import THEMES, get_theme, create_custom_theme
     from .native_converter import parse_frontmatter, convert_markdown_to_docx
+    from .docx_to_md import convert_docx_to_markdown
+    from .typst_compiler import compile_markdown_to_typst, compile_typst_to_pdf
+    from .pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf
 except (ImportError, ValueError):
     from mddoc.themes import THEMES, get_theme, create_custom_theme
     from mddoc.native_converter import parse_frontmatter, convert_markdown_to_docx
+    from mddoc.docx_to_md import convert_docx_to_markdown
+    from mddoc.typst_compiler import compile_markdown_to_typst, compile_typst_to_pdf
+    from mddoc.pdf_tools import pdf_to_images, images_to_pdf, merge_pdfs, split_pdf
 
 
 SAMPLE_MD_TEXT = """---
@@ -157,7 +163,7 @@ class MdDocModernApp(ctk.CTk):
 
         lbl_version = ctk.CTkLabel(
             self.sidebar_frame,
-            text="v1.1.0 • Desktop Edition",
+            text="v1.2.0 • Desktop Edition",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color=("#0284C7", "#38BDF8")
         )
@@ -166,7 +172,7 @@ class MdDocModernApp(ctk.CTk):
         # Nav Buttons
         self.btn_nav_doc = ctk.CTkButton(
             self.sidebar_frame,
-            text="  📝  Document & Editor",
+            text="  📝  Markdown Studio",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             anchor="w",
             height=38,
@@ -176,7 +182,35 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#FFFFFF", "#FFFFFF"),
             command=lambda: self._select_view("doc")
         )
-        self.btn_nav_doc.grid(row=2, column=0, padx=14, pady=4, sticky="ew")
+        self.btn_nav_doc.grid(row=2, column=0, padx=14, pady=3, sticky="ew")
+
+        self.btn_nav_docx = ctk.CTkButton(
+            self.sidebar_frame,
+            text="  🔄  Word ➔ Markdown",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            anchor="w",
+            height=38,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=("#CBD5E1", "#1E293B"),
+            text_color=("#334155", "#94A3B8"),
+            command=lambda: self._select_view("docx")
+        )
+        self.btn_nav_docx.grid(row=3, column=0, padx=14, pady=3, sticky="ew")
+
+        self.btn_nav_pdf = ctk.CTkButton(
+            self.sidebar_frame,
+            text="  📄  PDF Toolbox",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            anchor="w",
+            height=38,
+            corner_radius=8,
+            fg_color="transparent",
+            hover_color=("#CBD5E1", "#1E293B"),
+            text_color=("#334155", "#94A3B8"),
+            command=lambda: self._select_view("pdf")
+        )
+        self.btn_nav_pdf.grid(row=4, column=0, padx=14, pady=3, sticky="ew")
 
         self.btn_nav_theme = ctk.CTkButton(
             self.sidebar_frame,
@@ -190,7 +224,7 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#334155", "#94A3B8"),
             command=lambda: self._select_view("theme")
         )
-        self.btn_nav_theme.grid(row=3, column=0, padx=14, pady=4, sticky="ew")
+        self.btn_nav_theme.grid(row=5, column=0, padx=14, pady=3, sticky="ew")
 
         self.btn_nav_about = ctk.CTkButton(
             self.sidebar_frame,
@@ -204,7 +238,7 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#334155", "#94A3B8"),
             command=lambda: self._select_view("about")
         )
-        self.btn_nav_about.grid(row=4, column=0, padx=14, pady=4, sticky="ew")
+        self.btn_nav_about.grid(row=6, column=0, padx=14, pady=3, sticky="ew")
 
         # Open Web Studio Button
         btn_open_web = ctk.CTkButton(
@@ -252,10 +286,14 @@ class MdDocModernApp(ctk.CTk):
 
         # Views
         self.view_doc = ctk.CTkFrame(self.main_container, corner_radius=0, fg_color="transparent")
+        self.view_docx = ctk.CTkFrame(self.main_container, corner_radius=0, fg_color="transparent")
+        self.view_pdf = ctk.CTkFrame(self.main_container, corner_radius=0, fg_color="transparent")
         self.view_theme = ctk.CTkFrame(self.main_container, corner_radius=0, fg_color="transparent")
         self.view_about = ctk.CTkFrame(self.main_container, corner_radius=0, fg_color="transparent")
 
         self._build_doc_view()
+        self._build_docx_view()
+        self._build_pdf_view()
         self._build_theme_view()
         self._build_about_view()
 
@@ -264,25 +302,30 @@ class MdDocModernApp(ctk.CTk):
 
     def _select_view(self, name: str):
         # Update Nav Active Colors
-        self.btn_nav_doc.configure(
-            fg_color="#2563EB" if name == "doc" else "transparent",
-            text_color=("#FFFFFF", "#FFFFFF") if name == "doc" else ("#334155", "#94A3B8")
-        )
-        self.btn_nav_theme.configure(
-            fg_color="#2563EB" if name == "theme" else "transparent",
-            text_color=("#FFFFFF", "#FFFFFF") if name == "theme" else ("#334155", "#94A3B8")
-        )
-        self.btn_nav_about.configure(
-            fg_color="#2563EB" if name == "about" else "transparent",
-            text_color=("#FFFFFF", "#FFFFFF") if name == "about" else ("#334155", "#94A3B8")
-        )
+        for v_name, btn in [
+            ("doc", self.btn_nav_doc),
+            ("docx", self.btn_nav_docx),
+            ("pdf", self.btn_nav_pdf),
+            ("theme", self.btn_nav_theme),
+            ("about", self.btn_nav_about)
+        ]:
+            btn.configure(
+                fg_color="#2563EB" if name == v_name else "transparent",
+                text_color=("#FFFFFF", "#FFFFFF") if name == v_name else ("#334155", "#94A3B8")
+            )
 
         self.view_doc.grid_forget()
+        self.view_docx.grid_forget()
+        self.view_pdf.grid_forget()
         self.view_theme.grid_forget()
         self.view_about.grid_forget()
 
         if name == "doc":
             self.view_doc.grid(row=0, column=0, sticky="nsew")
+        elif name == "docx":
+            self.view_docx.grid(row=0, column=0, sticky="nsew")
+        elif name == "pdf":
+            self.view_pdf.grid(row=0, column=0, sticky="nsew")
         elif name == "theme":
             self.view_theme.grid(row=0, column=0, sticky="nsew")
         elif name == "about":
@@ -474,18 +517,34 @@ class MdDocModernApp(ctk.CTk):
         action_box = ctk.CTkFrame(self.view_doc, corner_radius=10, fg_color="transparent")
         action_box.pack(fill="x", pady=(2, 0))
 
+        btn_row = ctk.CTkFrame(action_box, fg_color="transparent")
+        btn_row.pack(fill="x")
+
         self.btn_convert = ctk.CTkButton(
-            action_box,
-            text="⬇️  Convert & Save Word Document (.docx)",
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
-            height=46,
+            btn_row,
+            text="⬇️  Generate Word (.docx)",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            height=44,
             corner_radius=8,
             fg_color=("#2563EB", "#2563EB"),
             hover_color=("#1D4ED8", "#1D4ED8"),
             text_color=("#FFFFFF", "#FFFFFF"),
             command=self._start_conversion
         )
-        self.btn_convert.pack(fill="x")
+        self.btn_convert.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        self.btn_typst = ctk.CTkButton(
+            btn_row,
+            text="📄  Export Typst / PDF (.typ)",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            height=44,
+            corner_radius=8,
+            fg_color=("#0F172A", "#1E293B"),
+            hover_color=("#1E293B", "#334155"),
+            text_color=("#FFFFFF", "#FFFFFF"),
+            command=self._export_typst
+        )
+        self.btn_typst.pack(side="left")
 
         self.var_status = tk.StringVar(value="Ready. Write or open Markdown to convert.")
         self.lbl_status = ctk.CTkLabel(
@@ -527,7 +586,155 @@ class MdDocModernApp(ctk.CTk):
         self.result_frame.pack_forget()
 
     # ==========================================
-    # VIEW 2: THEMES & CUSTOM COLORS
+    # VIEW: WORD (.DOCX) TO MARKDOWN
+    # ==========================================
+    def _build_docx_view(self):
+        card = ctk.CTkFrame(
+            self.view_docx,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
+        card.pack(fill="both", expand=True)
+
+        lbl_title = ctk.CTkLabel(
+            card,
+            text="🔄 Microsoft Word (.docx) ➔ Clean Markdown",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color=("#0F172A", "#FFFFFF")
+        )
+        lbl_title.pack(anchor="w", padx=16, pady=(16, 4))
+
+        lbl_sub = ctk.CTkLabel(
+            card,
+            text="Converts headings, booktabs tables, bullet lists, bold/italics, and code blocks into semantic Markdown.",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color=("#475569", "#94A3B8")
+        )
+        lbl_sub.pack(anchor="w", padx=16, pady=(0, 12))
+
+        tb = ctk.CTkFrame(card, fg_color="transparent")
+        tb.pack(fill="x", padx=16, pady=(0, 10))
+
+        btn_browse_docx = ctk.CTkButton(
+            tb,
+            text="📂 Open Word (.docx)",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=("#2563EB", "#2563EB"),
+            hover_color=("#1D4ED8", "#1D4ED8"),
+            command=self._browse_docx_to_convert
+        )
+        btn_browse_docx.pack(side="left", padx=(0, 8))
+
+        btn_copy_docx = ctk.CTkButton(
+            tb,
+            text="📋 Copy Markdown",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            fg_color=("#E2E8F0", "#1E293B"),
+            hover_color=("#CBD5E1", "#334155"),
+            text_color=("#0F172A", "#FFFFFF"),
+            command=self._copy_docx_markdown
+        )
+        btn_copy_docx.pack(side="left", padx=(0, 8))
+
+        btn_save_docx_md = ctk.CTkButton(
+            tb,
+            text="💾 Save .md",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            fg_color=("#E2E8F0", "#1E293B"),
+            hover_color=("#CBD5E1", "#334155"),
+            text_color=("#0F172A", "#FFFFFF"),
+            command=self._save_docx_markdown
+        )
+        btn_save_docx_md.pack(side="left", padx=(0, 8))
+
+        btn_send_studio = ctk.CTkButton(
+            tb,
+            text="🚀 Send to Markdown Studio",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color=("#10B981", "#10B981"),
+            hover_color=("#059669", "#059669"),
+            text_color=("#FFFFFF", "#FFFFFF"),
+            command=self._send_docx_to_studio
+        )
+        btn_send_studio.pack(side="left", padx=(0, 8))
+
+        self.lbl_docx_stats = ctk.CTkLabel(
+            card,
+            text="No document loaded. Click 'Open Word (.docx)' to begin.",
+            font=ctk.CTkFont(family="Segoe UI", size=12, slant="italic"),
+            text_color=("#64748B", "#94A3B8")
+        )
+        self.lbl_docx_stats.pack(anchor="w", padx=16, pady=(0, 8))
+
+        self.txt_docx_output = ctk.CTkTextbox(
+            card,
+            font=ctk.CTkFont(family="Consolas", size=12),
+            corner_radius=8,
+            fg_color=("#F8FAFC", "#0A0F1A"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1,
+            text_color=("#0F172A", "#F8FAFC")
+        )
+        self.txt_docx_output.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+
+    # ==========================================
+    # VIEW: PDF TOOLBOX
+    # ==========================================
+    def _build_pdf_view(self):
+        scroll = ctk.CTkScrollableFrame(self.view_pdf, fg_color="transparent")
+        scroll.pack(fill="both", expand=True)
+
+        title_card = ctk.CTkFrame(
+            scroll,
+            corner_radius=10,
+            fg_color=("#FFFFFF", "#131C2E"),
+            border_color=("#CBD5E1", "#1E293B"),
+            border_width=1
+        )
+        title_card.pack(fill="x", pady=(0, 12))
+
+        ctk.CTkLabel(
+            title_card,
+            text="📄 Local-First PDF Utility Toolbox",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color=("#0F172A", "#FFFFFF")
+        ).pack(anchor="w", padx=16, pady=(16, 4))
+
+        ctk.CTkLabel(
+            title_card,
+            text="100% private. Files never leave your local computer. Fast rendering and manipulation.",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color=("#475569", "#94A3B8")
+        ).pack(anchor="w", padx=16, pady=(0, 16))
+
+        # Tool 1: PDF to Images
+        card1 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card1.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card1, text="🖼️ Tool 1: Convert PDF to High-Res PNG Images", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card1, text="Renders every page of a PDF document into 200 DPI PNG files.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_p2i = ctk.CTkButton(card1, text="Select PDF & Extract Images", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_pdf_to_images)
+        btn_p2i.pack(anchor="w", padx=16, pady=(0, 14))
+
+        # Tool 2: Images to PDF
+        card2 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card2.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card2, text="📑 Tool 2: Compile Images into Standard PDF", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card2, text="Combines multiple PNG, JPG, or WEBP images into a clean PDF.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_i2p = ctk.CTkButton(card2, text="Select Images & Compile PDF", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_images_to_pdf)
+        btn_i2p.pack(anchor="w", padx=16, pady=(0, 14))
+
+        # Tool 3: Merge PDFs
+        card3 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
+        card3.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(card3, text="🔗 Tool 3: Merge Multiple PDF Documents", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
+        ctk.CTkLabel(card3, text="Select 2 or more PDF files to merge into a single document.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_mpdf = ctk.CTkButton(card3, text="Select PDFs to Merge", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_merge_pdfs)
+        btn_mpdf.pack(anchor="w", padx=16, pady=(0, 14))
+
+    # ==========================================
+    # VIEW: THEMES & CUSTOM COLORS
     # ==========================================
     def _build_theme_view(self):
         # 1. Curated Themes Card
@@ -987,6 +1194,179 @@ class MdDocModernApp(ctk.CTk):
     def _open_in_explorer(self):
         if self.last_generated_path and os.path.exists(self.last_generated_path):
             subprocess.run(f'explorer /select,"{os.path.abspath(self.last_generated_path)}"', shell=True)
+
+    def _export_typst(self):
+        text = self.txt_editor.get("1.0", tk.END).strip()
+        if not text:
+            messagebox.showwarning("Empty Document", "Please enter or load Markdown content first.")
+            return
+
+        doc_title = self.var_title.get().strip() or "document"
+        clean_title = "".join(c for c in doc_title if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+        default_name = f"{clean_title or 'document'}.typ"
+
+        out_path = filedialog.asksaveasfilename(
+            title="Export Typst / PDF Source",
+            initialfile=default_name,
+            defaultextension=".typ",
+            filetypes=[("Typst Source File", "*.typ"), ("All Files", "*.*")]
+        )
+        if not out_path:
+            return
+
+        theme_name = self.var_theme.get()
+        custom_dict = None
+        if theme_name == "custom":
+            custom_dict = create_custom_theme(
+                primary=self.custom_primary,
+                secondary=self.custom_secondary,
+                accent=self.custom_accent,
+                font_heading=self.var_font_head.get().strip(),
+                font_body=self.var_font_body.get().strip()
+            )
+
+        overrides = {
+            "title": self.var_title.get().strip() or None,
+            "subtitle": self.var_subtitle.get().strip() or None,
+            "author": self.var_author.get().strip() or None,
+            "date": self.var_date.get().strip() or None,
+            "show_cover": self.var_cover.get(),
+            "show_toc": self.var_toc.get(),
+            "show_header": self.var_header.get(),
+            "page_size": self.var_pagesize.get()
+        }
+
+        try:
+            typst_source = compile_markdown_to_typst(
+                md_text=text,
+                theme_name=theme_name,
+                custom_theme=custom_dict,
+                override_metadata=overrides
+            )
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(typst_source)
+            messagebox.showinfo("Export Successful", f"Typst code saved successfully:\n{out_path}\n\nYou can compile this directly to vector PDF using 'typst compile'!")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Failed to export Typst source:\n{e}")
+
+    def _browse_docx_to_convert(self):
+        file_path = filedialog.askopenfilename(
+            title="Select Microsoft Word Document",
+            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        try:
+            md_text = convert_docx_to_markdown(file_path)
+            self.txt_docx_output.delete("1.0", tk.END)
+            self.txt_docx_output.insert("1.0", md_text)
+
+            words = len(md_text.split()) if md_text.strip() else 0
+            headings = len(re.findall(r'^#{1,6}\s+', md_text, re.MULTILINE))
+            tables = len(re.findall(r'\|[\s-:]+\|', md_text))
+
+            fname = os.path.basename(file_path)
+            self.lbl_docx_stats.configure(
+                text=f"✔ File: {fname}  •  Words: {words:,}  •  Headings: {headings}  •  Tables: {tables}"
+            )
+            messagebox.showinfo("Conversion Success", f"Word document converted to Markdown!\nFound {headings} headings and {tables} tables.")
+        except Exception as e:
+            messagebox.showerror("Conversion Error", f"Failed to parse Word document:\n{e}")
+
+    def _copy_docx_markdown(self):
+        text = self.txt_docx_output.get("1.0", tk.END).strip()
+        if not text:
+            messagebox.showwarning("Empty", "No Markdown content to copy.")
+            return
+        self.clipboard_clear()
+        self.clipboard_append(text)
+        messagebox.showinfo("Copied", "Markdown copied to clipboard!")
+
+    def _save_docx_markdown(self):
+        text = self.txt_docx_output.get("1.0", tk.END).strip()
+        if not text:
+            messagebox.showwarning("Empty", "No Markdown content to save.")
+            return
+        out_path = filedialog.asksaveasfilename(
+            title="Save Markdown File",
+            initialfile="converted_document.md",
+            defaultextension=".md",
+            filetypes=[("Markdown Files", "*.md"), ("All Files", "*.*")]
+        )
+        if out_path:
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(text)
+            messagebox.showinfo("Saved", f"Markdown file saved:\n{out_path}")
+
+    def _send_docx_to_studio(self):
+        text = self.txt_docx_output.get("1.0", tk.END).strip()
+        if not text:
+            messagebox.showwarning("Empty", "No Markdown content to load.")
+            return
+        self.txt_editor.delete("1.0", tk.END)
+        self.txt_editor.insert("1.0", text)
+        self._select_view("doc")
+        messagebox.showinfo("Loaded", "Document transferred into Markdown Studio editor!")
+
+    def _action_pdf_to_images(self):
+        pdf_path = filedialog.askopenfilename(
+            title="Select PDF Document",
+            filetypes=[("PDF Documents", "*.pdf")]
+        )
+        if not pdf_path:
+            return
+        out_dir = filedialog.askdirectory(title="Select Folder to Save Extracted PNG Images")
+        if not out_dir:
+            return
+        try:
+            images = pdf_to_images(pdf_path, out_dir, dpi=200)
+            messagebox.showinfo("Images Extracted", f"Successfully extracted {len(images)} pages as high-res PNG images into:\n{out_dir}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to extract images:\n{e}")
+
+    def _action_images_to_pdf(self):
+        img_paths = filedialog.askopenfilenames(
+            title="Select Image Files to Compile into PDF",
+            filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp"), ("All Files", "*.*")]
+        )
+        if not img_paths:
+            return
+        out_pdf = filedialog.asksaveasfilename(
+            title="Save Compiled PDF",
+            initialfile="compiled_images.pdf",
+            defaultextension=".pdf",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not out_pdf:
+            return
+        try:
+            images_to_pdf(list(img_paths), out_pdf)
+            messagebox.showinfo("PDF Generated", f"Successfully compiled {len(img_paths)} images into:\n{out_pdf}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to compile PDF:\n{e}")
+
+    def _action_merge_pdfs(self):
+        pdf_paths = filedialog.askopenfilenames(
+            title="Select 2 or More PDF Files to Merge",
+            filetypes=[("PDF Documents", "*.pdf")]
+        )
+        if not pdf_paths or len(pdf_paths) < 2:
+            messagebox.showwarning("Selection", "Please select at least 2 PDF files to merge.")
+            return
+        out_pdf = filedialog.asksaveasfilename(
+            title="Save Merged PDF",
+            initialfile="merged_document.pdf",
+            defaultextension=".pdf",
+            filetypes=[("PDF Document", "*.pdf")]
+        )
+        if not out_pdf:
+            return
+        try:
+            merge_pdfs(list(pdf_paths), out_pdf)
+            messagebox.showinfo("PDFs Merged", f"Successfully merged {len(pdf_paths)} documents into:\n{out_pdf}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to merge PDFs:\n{e}")
 
 
 def launch_gui():

@@ -21,25 +21,26 @@ You can download the standalone desktop application directly from the **[GitHub 
 
 | Platform / Edition | Status | Download Link | Description |
 |---|---|---|---|
-| 🪟 **Windows Desktop App** | `v1.1.0` (Latest) | [⬇️ **Download `MdDoc.exe`**](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest) | **Single-file executable**: Double-click to open. Zero installation, zero terminal, zero dependencies. |
+| 🪟 **Windows Desktop App** | `v1.2.0` (Latest) | [⬇️ **Download `MdDoc.exe`**](https://github.com/iliass-wakkar/MdDoc-Studio/releases/latest) | **Single-file executable**: Double-click to open. Multi-format Studio (DOCX, PDF, Word to Markdown, PDF tools). |
 | 📦 **All Version Releases** | All Versions | [📋 **View All Releases & Changelogs**](https://github.com/iliass-wakkar/MdDoc-Studio/releases) | Complete list of all historical releases, release notes, and version assets. |
-| 🌐 **Public Web Studio** | Online (24/7) | [🚀 **Launch Web Studio**](https://github.com/iliass-wakkar/MdDoc-Studio) | 100% Client-Side WebAssembly (WASM) in-browser converter. |
+| 🌐 **Public Web Studio** | Online (24/7) | [🚀 **Launch Web Studio**](https://github.com/iliass-wakkar/MdDoc-Studio) | 100% Client-Side WebAssembly (WASM) multi-format in-browser studio. |
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features (v1.2.0 Multi-Format Studio)
 
-- **🎨 5 Curated Design Themes:** Modern Tech, Nordic Minimal, Academic Classic, Forest Moss, and Corporate Blue.
-- **⚡ Dual Engine Architecture:**
-  - **Native Engine:** 100% Pure Python (`python-docx`). Zero external binaries required.
-  - **Pandoc Engine:** Combines Pandoc reference templates with automated Python post-processing (zebra tables, callouts, header protection).
-- **📑 Executive Cover Pages:** Clean title, subtitle, author, date, and geometric accent rules.
-- **📊 Professional Tables:** Booktabs-inspired formatting, header shading, zebra striping, custom cell padding, and page-split protection (`cantSplit` & `tblHeader`).
-- **💡 GitHub-Style Admonitions:** Natively renders `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, and `> [!CAUTION]` with icons and accent bars.
-- **💻 Syntax Code Containers:** Padded code blocks with monospace font and subtle background shading.
-- **🔄 Word-Native Table of Contents:** Generates native Word TOC field codes with page number dots.
-- **👁️ Live Watch Mode:** Automatically re-compiles your `.docx` file every time you save your Markdown file.
-- **🖱️ Windows Drag & Drop:** Drop any `.md` file onto `mddoc.bat` for instant conversion.
+- **🏛️ Shared Intermediate Representation (IR / AST):** Unified document model ensuring that themes, fonts, booktabs tables, and admonition callout boxes look identical across Word and PDF outputs.
+- **🎨 5 Curated Design Themes + Custom Hex Designer:** Modern Tech, Nordic Minimal, Academic Classic, Forest Moss, Corporate Blue, and custom user palettes.
+- **📄 Dual Publication Backends:**
+  - **Word DOCX Engine:** Pure Python (`python-docx`) OpenXML with cover pages, zebra tables, and native heading hierarchy.
+  - **Typst Vector PDF Engine:** Modern Typst markup with micro-typographic kerning and high-speed compilation.
+- **🔄 Semantic Word (.docx) ➔ Markdown Converter:** Extracts headings, tables, bullet lists, bold/italics, and code blocks into clean GitHub-Flavored Markdown. Available directly in the browser and desktop app.
+- **🛠️ Zero-Upload PDF Utility Toolbox:**
+  - **PDF ➔ Images (PNG):** Extracts 200/300 DPI high-resolution PNG pages.
+  - **Images ➔ PDF:** Compiles PNG, JPG, or WEBP images into standardized PDF files.
+  - **PDF Merge & Split:** Merges multiple PDFs or extracts page ranges locally in RAM.
+- **🛡️ 100% Client-Side Privacy:** Zero files are sent to remote servers. All processing takes place in your local browser memory (WebAssembly) or on your desktop.
+- **⚖️ Clean Permissive Licensing:** Built with MIT, Apache-2.0, and BSD-3 libraries. Zero AGPL copyleft traps.
 
 ---
 

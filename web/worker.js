@@ -38,6 +38,7 @@ import io
 sys.path.insert(0, '/home/pyodide')
 
 from mddoc.native_converter import MarkdownToDocxConverter
+from mddoc.typst_compiler import compile_markdown_to_typst
 
 def convert_md_to_docx_bytes(md_text, theme_name="modern", custom_theme=None, title=None, subtitle=None, author=None, date=None, show_cover=True, show_toc=True, show_header=False, page_size="A4"):
     converter = MarkdownToDocxConverter(
@@ -133,6 +134,46 @@ convert_md_to_docx_bytes(
         } catch (err) {
             console.error("Conversion Error:", err);
             postMessage({ id, type: "ERROR", message: err.message || "Conversion failed" });
+        }
+    } else if (action === "CONVERT_TYPST") {
+        if (!isReady) {
+            postMessage({ id, type: "ERROR", message: "Engine is still initializing..." });
+            return;
+        }
+        try {
+            const {
+                markdown,
+                theme = "modern",
+                custom_theme = null,
+                title = null,
+                subtitle = null,
+                author = null,
+                date = null,
+                show_cover = false,
+                show_toc = false,
+                show_header = false,
+                page_size = "A4"
+            } = payload;
+
+            pyodide.globals.set("_md_input", markdown);
+            pyodide.globals.set("_theme_input", theme);
+            pyodide.globals.set("_custom_theme_input", custom_theme ? pyodide.toPy(custom_theme) : null);
+            pyodide.globals.set("_overrides_input", pyodide.toPy({
+                title, subtitle, author, date, show_cover, show_toc, show_header, page_size
+            }));
+
+            const typstStr = await pyodide.runPythonAsync(`
+compile_markdown_to_typst(
+    _md_input,
+    theme_name=_theme_input,
+    custom_theme=_custom_theme_input,
+    override_metadata=_overrides_input
+)
+`);
+            postMessage({ id, type: "TYPST_SUCCESS", data: typstStr });
+        } catch (err) {
+            console.error("Typst Conversion Error:", err);
+            postMessage({ id, type: "ERROR", message: err.message || "Typst generation failed" });
         }
     }
 };

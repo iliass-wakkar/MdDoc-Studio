@@ -84,6 +84,8 @@ const chkCover = document.getElementById('chk-cover');
 const chkToc = document.getElementById('chk-toc');
 const chkHeader = document.getElementById('chk-header');
 const selPageSize = document.getElementById('sel-pagesize');
+const btnExportTypst = document.getElementById('btn-export-typst');
+const btnTypstText = document.getElementById('btn-typst-text');
 
 // Custom Theme Controls
 const customThemePanel = document.getElementById('custom-theme-panel');
@@ -121,6 +123,8 @@ function initWorker() {
             if (btnHeaderExport) btnHeaderExport.disabled = false;
         } else if (type === "CONVERT_SUCCESS") {
             onExportSuccess(data);
+        } else if (type === "TYPST_SUCCESS") {
+            onTypstSuccess(data);
         } else if (type === "ERROR") {
             onExportError(message);
         }
@@ -570,9 +574,65 @@ function setupExport() {
         });
     };
 
+    const triggerTypstExport = () => {
+        const text = mdInput.value.trim();
+        if (!text) {
+            showToast("Please enter or upload Markdown content first.", "error");
+            return;
+        }
+
+        if (!isEngineReady) {
+            showToast("Engine is still loading WebAssembly, please wait...", "error");
+            return;
+        }
+
+        if (btnExportTypst) btnExportTypst.disabled = true;
+        if (btnTypstText) btnTypstText.innerText = "Compiling Typst...";
+        showToast("Compiling Typst vector document...", "success");
+
+        const payload = {
+            markdown: text,
+            theme: selectedTheme,
+            custom_theme: (selectedTheme === "custom") ? buildCustomThemeDictForDocx() : null,
+            title: inpTitle.value.trim() || null,
+            subtitle: inpSubtitle.value.trim() || null,
+            author: inpAuthor.value.trim() || null,
+            show_cover: chkCover.checked,
+            show_toc: chkToc.checked,
+            show_header: chkHeader ? chkHeader.checked : false,
+            page_size: selPageSize.value
+        };
+
+        worker.postMessage({
+            action: "CONVERT_TYPST",
+            id: Date.now(),
+            payload
+        });
+    };
+
     if (btnExport) btnExport.addEventListener('click', triggerExport);
     if (btnHeaderExport) btnHeaderExport.addEventListener('click', triggerExport);
     if (btnToolbarExport) btnToolbarExport.addEventListener('click', triggerExport);
+    if (btnExportTypst) btnExportTypst.addEventListener('click', triggerTypstExport);
+}
+
+function onTypstSuccess(typstSource) {
+    if (btnExportTypst) btnExportTypst.disabled = false;
+    if (btnTypstText) btnTypstText.innerText = "Export Typst / PDF (.typ)";
+
+    const blob = new Blob([typstSource], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    let docName = inpTitle.value.trim() || "document";
+    docName = docName.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_');
+    const fileName = `${docName || "document"}.typ`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast(`Saved "${fileName}" ready for Typst compilation!`, "success");
 }
 
 function onExportSuccess(uint8Array) {
@@ -715,6 +775,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     chkCover.addEventListener('change', updatePreview);
 
+    // Multi-Mode Studio Setups
+    setupStudioNavigation();
+    setupDocxConverter();
+    setupPdfToolbox();
+
     // Initial setup
     updateCustomSwatches();
     mdInput.value = SAMPLE_MARKDOWN;
@@ -724,3 +789,453 @@ document.addEventListener('DOMContentLoaded', () => {
     selectTheme("modern");
     updatePreview();
 });
+
+// ==========================================================================
+// STUDIO MODE NAVIGATION
+// ==========================================================================
+function setupStudioNavigation() {
+    const btnModeMd = document.getElementById('btn-mode-markdown');
+    const btnModeDocx = document.getElementById('btn-mode-docx');
+    const btnModePdf = document.getElementById('btn-mode-pdf');
+
+    const viewMd = document.getElementById('view-mode-markdown');
+    const viewDocx = document.getElementById('view-mode-docx');
+    const viewPdf = document.getElementById('view-mode-pdf');
+
+    const switchMode = (mode) => {
+        [btnModeMd, btnModeDocx, btnModePdf].forEach(b => b && b.classList.remove('active'));
+        [viewMd, viewDocx, viewPdf].forEach(v => v && (v.style.display = 'none'));
+
+        if (mode === 'markdown') {
+            if (btnModeMd) btnModeMd.classList.add('active');
+            if (viewMd) viewMd.style.display = 'block';
+        } else if (mode === 'docx') {
+            if (btnModeDocx) btnModeDocx.classList.add('active');
+            if (viewDocx) viewDocx.style.display = 'block';
+        } else if (mode === 'pdf') {
+            if (btnModePdf) btnModePdf.classList.add('active');
+            if (viewPdf) viewPdf.style.display = 'block';
+        }
+    };
+
+    if (btnModeMd) btnModeMd.addEventListener('click', () => switchMode('markdown'));
+    if (btnModeDocx) btnModeDocx.addEventListener('click', () => switchMode('docx'));
+    if (btnModePdf) btnModePdf.addEventListener('click', () => switchMode('pdf'));
+}
+
+// ==========================================================================
+// CLIENT-SIDE WORD (.DOCX) TO MARKDOWN CONVERTER (MAMMOTH + GFM)
+// ==========================================================================
+function setupDocxConverter() {
+    const dropZone = document.getElementById('docx-drop-zone');
+    const fileInput = document.getElementById('docx-file-input');
+    const outputArea = document.getElementById('docx-markdown-output');
+    const statsBar = document.getElementById('docx-stats-bar');
+    const statFilename = document.getElementById('stat-filename');
+    const statWords = document.getElementById('stat-words');
+    const statHeadings = document.getElementById('stat-headings');
+    const statTables = document.getElementById('stat-tables');
+
+    const btnCopy = document.getElementById('btn-copy-docx-md');
+    const btnDownload = document.getElementById('btn-download-docx-md');
+    const btnOpenInStudio = document.getElementById('btn-open-in-studio');
+
+    if (!dropZone || !fileInput) return;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleDocxFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleDocxFile(e.target.files[0]);
+    });
+
+    const handleDocxFile = async (file) => {
+        if (!file.name.toLowerCase().endsWith('.docx')) {
+            showToast("Please select a valid Microsoft Word (.docx) document.", "error");
+            return;
+        }
+
+        showToast(`Converting "${file.name}" locally in browser...`, "success");
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            if (!window.mammoth) {
+                showToast("Mammoth engine not loaded yet, please try again.", "error");
+                return;
+            }
+
+            const customStyleMap = [
+                "p[style-name^='Heading 1'] => h1:fresh",
+                "p[style-name^='Heading 2'] => h2:fresh",
+                "p[style-name^='Heading 3'] => h3:fresh",
+                "p[style-name^='Heading 4'] => h4:fresh",
+                "p[style-name='Title'] => h1:fresh",
+                "p[style-name='Subtitle'] => h2:fresh"
+            ];
+
+            const result = await mammoth.convertToHtml({ arrayBuffer }, { styleMap: customStyleMap });
+            const rawHtml = result.value || "";
+
+            // Sanitize with DOMPurify
+            const cleanHtml = window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+
+            // Convert to Markdown with Turndown + GFM plugin
+            const turndownService = new TurndownService({
+                headingStyle: 'atx',
+                codeBlockStyle: 'fenced'
+            });
+            if (window.turndownPluginGfm && turndownService.use) {
+                turndownService.use(turndownPluginGfm.gfm);
+            }
+
+            let mdText = turndownService.turndown(cleanHtml);
+            outputArea.value = mdText;
+
+            // Stats
+            const words = mdText.trim() ? mdText.trim().split(/\s+/).length : 0;
+            const headings = (mdText.match(/^#{1,6}\s+/gm) || []).length;
+            const tables = (mdText.match(/\|[\s-:]+\|/g) || []).length;
+
+            if (statsBar) statsBar.style.display = 'flex';
+            if (statFilename) statFilename.innerText = file.name;
+            if (statWords) statWords.innerText = words.toLocaleString();
+            if (statHeadings) statHeadings.innerText = headings;
+            if (statTables) statTables.innerText = tables;
+
+            showToast("DOCX converted to clean Markdown!", "success");
+        } catch (err) {
+            console.error("DOCX Conversion error:", err);
+            showToast("Failed to parse Word document: " + err.message, "error");
+        }
+    };
+
+    if (btnCopy) {
+        btnCopy.addEventListener('click', () => {
+            if (!outputArea.value.trim()) return showToast("No Markdown to copy.", "error");
+            navigator.clipboard.writeText(outputArea.value);
+            showToast("Copied Markdown to clipboard!", "success");
+        });
+    }
+
+    if (btnDownload) {
+        btnDownload.addEventListener('click', () => {
+            const text = outputArea.value.trim();
+            if (!text) return showToast("No Markdown to download.", "error");
+            const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (statFilename.innerText.replace(/\.docx$/i, '') || "converted") + ".md";
+            a.click();
+            a.remove();
+        });
+    }
+
+    if (btnOpenInStudio) {
+        btnOpenInStudio.addEventListener('click', () => {
+            const text = outputArea.value.trim();
+            if (!text) return showToast("No Markdown to load into Studio.", "error");
+            mdInput.value = text;
+            checkAndApplyFrontmatter(text);
+            updatePreview();
+            document.getElementById('btn-mode-markdown').click();
+            showToast("Document opened in Markdown Studio!", "success");
+        });
+    }
+}
+
+// ==========================================================================
+// CLIENT-SIDE PDF TOOLBOX (PDF.JS, PDF-LIB, JSZIP)
+// ==========================================================================
+function setupPdfToolbox() {
+    // Subtabs
+    const subtabs = document.querySelectorAll('.pdf-subtab-btn');
+    subtabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            subtabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const sub = btn.dataset.sub;
+            document.querySelectorAll('.pdf-panel-content').forEach(p => p.style.display = 'none');
+            const target = document.getElementById(`pdf-panel-${sub}`);
+            if (target) target.style.display = 'block';
+        });
+    });
+
+    // Tool 1: PDF to Images
+    const p2iDrop = document.getElementById('pdf2img-drop-zone');
+    const p2iInput = document.getElementById('pdf2img-file-input');
+    const p2iGrid = document.getElementById('pdf2img-thumbnails-grid');
+    const p2iActionBar = document.getElementById('pdf2img-action-bar');
+    const p2iStatus = document.getElementById('pdf2img-status-text');
+    const btnZip = document.getElementById('btn-download-all-zip');
+
+    let renderedPngBlobs = [];
+
+    if (p2iDrop && p2iInput) {
+        p2iDrop.addEventListener('click', () => p2iInput.click());
+        p2iDrop.addEventListener('dragover', (e) => { e.preventDefault(); p2iDrop.classList.add('dragover'); });
+        p2iDrop.addEventListener('dragleave', () => p2iDrop.classList.remove('dragover'));
+        p2iDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            p2iDrop.classList.remove('dragover');
+            if (e.dataTransfer.files.length) renderPdfToImages(e.dataTransfer.files[0]);
+        });
+        p2iInput.addEventListener('change', (e) => {
+            if (e.target.files.length) renderPdfToImages(e.target.files[0]);
+        });
+    }
+
+    async function renderPdfToImages(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            showToast("Please select a PDF document.", "error");
+            return;
+        }
+        showToast("Rendering PDF pages in browser memory...", "success");
+        p2iGrid.innerHTML = "";
+        renderedPngBlobs = [];
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+
+            p2iActionBar.style.display = 'flex';
+            p2iStatus.innerText = `${file.name} • ${pdfDoc.numPages} pages`;
+
+            for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 1.5 });
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport }).promise;
+
+                const dataUrl = canvas.toDataURL('image/png');
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                renderedPngBlobs.push({ pageNum, blob, dataUrl });
+
+                const card = document.createElement('div');
+                card.className = 'page-thumb-card';
+                card.innerHTML = `
+                    <div class="page-thumb-meta">
+                        <span>Page ${pageNum}</span>
+                        <button class="btn-thumb-download" data-page="${pageNum}">⬇️ Save PNG</button>
+                    </div>
+                `;
+                card.insertBefore(canvas, card.firstChild);
+                card.querySelector('.btn-thumb-download').onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = dataUrl;
+                    a.download = `page_${String(pageNum).padStart(3, '0')}.png`;
+                    a.click();
+                };
+                p2iGrid.appendChild(card);
+            }
+            showToast(`Rendered ${pdfDoc.numPages} pages successfully!`, "success");
+        } catch (err) {
+            console.error("PDF Render Error:", err);
+            showToast("Failed to render PDF: " + err.message, "error");
+        }
+    }
+
+    if (btnZip) {
+        btnZip.addEventListener('click', async () => {
+            if (!renderedPngBlobs.length) return;
+            showToast("Packaging PNGs into ZIP...", "success");
+            const zip = new JSZip();
+            renderedPngBlobs.forEach(item => {
+                zip.file(`page_${String(item.pageNum).padStart(3, '0')}.png`, item.blob);
+            });
+            const content = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "extracted_pdf_pages.zip";
+            a.click();
+            a.remove();
+            showToast("Downloaded all pages as ZIP!", "success");
+        });
+    }
+
+    // Tool 2: Images to PDF
+    const i2pDrop = document.getElementById('img2pdf-drop-zone');
+    const i2pInput = document.getElementById('img2pdf-file-input');
+    const i2pActionBar = document.getElementById('img2pdf-action-bar');
+    const i2pStatus = document.getElementById('img2pdf-status-text');
+    const i2pGrid = document.getElementById('img2pdf-preview-grid');
+    const btnCompilePdf = document.getElementById('btn-compile-images-pdf');
+
+    let loadedImages = [];
+
+    if (i2pDrop && i2pInput) {
+        i2pDrop.addEventListener('click', () => i2pInput.click());
+        i2pDrop.addEventListener('dragover', (e) => { e.preventDefault(); i2pDrop.classList.add('dragover'); });
+        i2pDrop.addEventListener('dragleave', () => i2pDrop.classList.remove('dragover'));
+        i2pDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            i2pDrop.classList.remove('dragover');
+            handleLoadedImages(Array.from(e.dataTransfer.files));
+        });
+        i2pInput.addEventListener('change', (e) => {
+            handleLoadedImages(Array.from(e.target.files));
+        });
+    }
+
+    function handleLoadedImages(files) {
+        const valid = files.filter(f => f.type.startsWith('image/'));
+        if (!valid.length) return showToast("Please select valid image files.", "error");
+        loadedImages.push(...valid);
+        i2pActionBar.style.display = 'flex';
+        i2pStatus.innerText = `${loadedImages.length} images queued`;
+        renderImagesList();
+        showToast(`Added ${valid.length} images!`, "success");
+    }
+
+    function renderImagesList() {
+        i2pGrid.innerHTML = "";
+        loadedImages.forEach((img, idx) => {
+            const item = document.createElement('div');
+            item.className = 'queue-item';
+            item.innerHTML = `
+                <span>🖼️ Image ${idx + 1}: <strong>${img.name}</strong> (${(img.size / 1024).toFixed(1)} KB)</span>
+                <button class="action-btn" style="color:#EF4444;" data-idx="${idx}">✕ Remove</button>
+            `;
+            item.querySelector('button').onclick = () => {
+                loadedImages.splice(idx, 1);
+                renderImagesList();
+                i2pStatus.innerText = `${loadedImages.length} images queued`;
+            };
+            i2pGrid.appendChild(item);
+        });
+    }
+
+    if (btnCompilePdf) {
+        btnCompilePdf.addEventListener('click', async () => {
+            if (!loadedImages.length) return showToast("Please add images first.", "error");
+            showToast("Compiling PDF in browser memory...", "success");
+            try {
+                const pdfDoc = await PDFLib.PDFDocument.create();
+                for (const imgFile of loadedImages) {
+                    const bytes = await imgFile.arrayBuffer();
+                    let embedded;
+                    if (imgFile.type.includes('png')) {
+                        embedded = await pdfDoc.embedPng(bytes);
+                    } else {
+                        embedded = await pdfDoc.embedJpg(bytes);
+                    }
+                    const page = pdfDoc.addPage([embedded.width, embedded.height]);
+                    page.drawImage(embedded, {
+                        x: 0,
+                        y: 0,
+                        width: embedded.width,
+                        height: embedded.height
+                    });
+                }
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "compiled_images.pdf";
+                a.click();
+                a.remove();
+                showToast("PDF generated and downloaded!", "success");
+            } catch (err) {
+                console.error("PDF Compile Error:", err);
+                showToast("Failed to compile PDF: " + err.message, "error");
+            }
+        });
+    }
+
+    // Tool 3: Merge PDFs
+    const mDrop = document.getElementById('merge-drop-zone');
+    const mInput = document.getElementById('merge-file-input');
+    const mActionBar = document.getElementById('merge-action-bar');
+    const mStatus = document.getElementById('merge-status-text');
+    const mQueue = document.getElementById('merge-queue-list');
+    const btnExecMerge = document.getElementById('btn-execute-merge');
+
+    let pdfFilesToMerge = [];
+
+    if (mDrop && mInput) {
+        mDrop.addEventListener('click', () => mInput.click());
+        mDrop.addEventListener('dragover', (e) => { e.preventDefault(); mDrop.classList.add('dragover'); });
+        mDrop.addEventListener('dragleave', () => mDrop.classList.remove('dragover'));
+        mDrop.addEventListener('drop', (e) => {
+            e.preventDefault();
+            mDrop.classList.remove('dragover');
+            handlePdfsToMerge(Array.from(e.dataTransfer.files));
+        });
+        mInput.addEventListener('change', (e) => {
+            handlePdfsToMerge(Array.from(e.target.files));
+        });
+    }
+
+    function handlePdfsToMerge(files) {
+        const valid = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+        if (!valid.length) return showToast("Please select valid .pdf files.", "error");
+        pdfFilesToMerge.push(...valid);
+        mActionBar.style.display = 'flex';
+        mStatus.innerText = `${pdfFilesToMerge.length} PDFs queued`;
+        renderMergeQueue();
+        showToast(`Added ${valid.length} PDF files to merge!`, "success");
+    }
+
+    function renderMergeQueue() {
+        mQueue.innerHTML = "";
+        pdfFilesToMerge.forEach((pdf, idx) => {
+            const li = document.createElement('li');
+            li.className = 'queue-item';
+            li.innerHTML = `
+                <span>📄 Document ${idx + 1}: <strong>${pdf.name}</strong> (${(pdf.size / 1024).toFixed(1)} KB)</span>
+                <button class="action-btn" style="color:#EF4444;" data-idx="${idx}">✕ Remove</button>
+            `;
+            li.querySelector('button').onclick = () => {
+                pdfFilesToMerge.splice(idx, 1);
+                renderMergeQueue();
+                mStatus.innerText = `${pdfFilesToMerge.length} PDFs queued`;
+            };
+            mQueue.appendChild(li);
+        });
+    }
+
+    if (btnExecMerge) {
+        btnExecMerge.addEventListener('click', async () => {
+            if (pdfFilesToMerge.length < 2) return showToast("Please add at least 2 PDF files to merge.", "error");
+            showToast("Merging PDFs in browser memory...", "success");
+            try {
+                const mergedDoc = await PDFLib.PDFDocument.create();
+                for (const pdfFile of pdfFilesToMerge) {
+                    const bytes = await pdfFile.arrayBuffer();
+                    const srcDoc = await PDFLib.PDFDocument.load(bytes);
+                    const copiedPages = await mergedDoc.copyPages(srcDoc, srcDoc.getPageIndices());
+                    copiedPages.forEach(page => mergedDoc.addPage(page));
+                }
+                const mergedBytes = await mergedDoc.save();
+                const blob = new Blob([mergedBytes], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "merged_document.pdf";
+                a.click();
+                a.remove();
+                showToast("Merged PDF created successfully!", "success");
+            } catch (err) {
+                console.error("PDF Merge Error:", err);
+                showToast("Failed to merge PDFs: " + err.message, "error");
+            }
+        });
+    }
+}

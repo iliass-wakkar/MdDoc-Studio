@@ -8,7 +8,7 @@ import json
 base_dir = os.path.dirname(os.path.abspath(__file__))
 mddoc_dir = os.path.join(base_dir, "mddoc")
 
-files_to_bundle = ["__init__.py", "themes.py", "oxml.py", "native_converter.py"]
+files_to_bundle = ["__init__.py", "themes.py", "oxml.py", "native_converter.py", "ir.py", "docx_to_md.py", "typst_compiler.py"]
 bundle = {}
 
 for fname in files_to_bundle:

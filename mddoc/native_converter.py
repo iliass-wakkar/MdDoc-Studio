@@ -274,7 +274,10 @@ class MarkdownToDocxConverter:
 
     def _add_heading(self, text: str, level: int):
         """Add styled heading with keep-with-next and hierarchy colors."""
-        p = self.doc.add_paragraph()
+        try:
+            p = self.doc.add_paragraph(style=f"Heading {level}")
+        except Exception:
+            p = self.doc.add_paragraph()
         if level == 1:
             if self.heading_count > 0:
                 self.doc.add_page_break()

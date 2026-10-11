@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mddoc"
-version = "1.1.0"
-description = "Markdown to Publication-Quality Microsoft Word (.docx) Converter with Kimi-inspired design heuristics"
+version = "1.2.0"
+description = "Markdown to Publication-Quality Microsoft Word (.docx) and PDF Document Studio"
 readme = "README.md"
 authors = [{ name = "Ilias", email = "ilias@example.com" }]
 license = "MIT"
@@ -14,7 +14,10 @@ dependencies = [
     "python-docx>=1.0.0",
     "markdown>=3.5.0",
     "beautifulsoup4>=4.12.0",
-    "pyyaml>=6.0.0"
+    "pyyaml>=6.0.0",
+    "mammoth>=1.8.0",
+    "pypdf>=5.0.0",
+    "pypdfium2>=4.30.0"
 ]
 
 [project.scripts]

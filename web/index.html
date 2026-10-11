@@ -3,13 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MdDoc Studio — Markdown to Publication-Quality Word DOCX</title>
-    <meta name="description" content="Free, 100% client-side Markdown to beautifully styled Microsoft Word (.docx) converter powered by WebAssembly. Zero data leaves your device.">
+    <title>MdDoc Studio — Markdown to Publication-Quality Word & PDF</title>
+    <meta name="description" content="Free, 100% private client-side document engineering studio. Convert Markdown to Word (.docx) and PDF, DOCX to Markdown, and run PDF tools in browser memory with zero server uploads.">
+    <link rel="canonical" href="https://stylemymarkdown.com/">
+    <meta property="og:title" content="MdDoc Studio — Markdown to Publication-Quality Word & PDF">
+    <meta property="og:description" content="100% private in-browser document studio. Converts Markdown to Word (.docx) and PDF with custom typography, cover pages, tables, and callouts.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css?v=1.1.0">
-    <!-- Marked.js for fast client-side live preview -->
+    <link rel="stylesheet" href="style.css?v=1.2.0">
+
+    <!-- Schema.org SoftwareApplication JSON-LD for Google Rich Results -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "MdDoc Studio",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser, Windows",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "description": "Convert Markdown to publication-quality Word DOCX and PDF with auto cover pages, booktabs tables, callouts, and custom themes. Runs 100% locally in your browser."
+    }
+    </script>
+
+    <!-- Client-Side Parsing & Conversion Engines (100% In-Browser) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <!-- App Header -->
@@ -34,9 +60,32 @@
         </div>
     </header>
 
+    <!-- Studio Mode Switcher Bar -->
+    <nav class="studio-nav-bar">
+        <div class="studio-nav-container">
+            <div class="studio-tabs">
+                <button class="studio-tab-btn active" id="btn-mode-markdown" data-mode="markdown">
+                    <span class="tab-icon">📝</span> Markdown Studio
+                </button>
+                <button class="studio-tab-btn" id="btn-mode-docx" data-mode="docx">
+                    <span class="tab-icon">🔄</span> Word (.docx) ➔ Markdown
+                </button>
+                <button class="studio-tab-btn" id="btn-mode-pdf" data-mode="pdf">
+                    <span class="tab-icon">📄</span> PDF Toolbox
+                </button>
+            </div>
+            <div class="privacy-pill">
+                <span class="privacy-dot"></span> 100% In-Browser • Zero Cloud Uploads
+            </div>
+        </div>
+    </nav>
+
     <!-- Main Workspace -->
     <main class="workspace-container">
-        <div class="workspace-grid">
+        
+        <!-- MODE 1: MARKDOWN STUDIO -->
+        <div class="studio-mode-view active" id="view-mode-markdown">
+            <div class="workspace-grid">
             
             <!-- Left Pane: Editor & Live Preview -->
             <section class="editor-pane">
@@ -86,6 +135,10 @@
                     <button class="btn-export" id="btn-export">
                         <span class="btn-icon">⬇️</span>
                         <span id="btn-text">Download Word (.docx)</span>
+                    </button>
+                    <button class="btn-export-secondary" id="btn-export-typst">
+                        <span class="btn-icon">📄</span>
+                        <span id="btn-typst-text">Export Typst / PDF (.typ)</span>
                     </button>
                     <div id="download-box" class="download-box" style="display:none;"></div>
                     <div id="status-toast" class="status-toast"></div>
@@ -291,6 +344,113 @@
 
             </aside>
         </div>
+        </div> <!-- End of view-mode-markdown -->
+
+        <!-- MODE 2: WORD (.DOCX) TO MARKDOWN CONVERTER -->
+        <section class="studio-mode-view" id="view-mode-docx" style="display:none;">
+            <div class="card converter-view-card">
+                <div class="converter-view-header">
+                    <div>
+                        <h2 class="mode-view-title">🔄 Microsoft Word (.docx) ➔ Semantic Markdown</h2>
+                        <p class="mode-view-subtitle">Converts headings, booktabs tables, bullet lists, bold/italics, and code blocks into clean GitHub-Flavored Markdown. 100% in-browser.</p>
+                    </div>
+                    <div class="converter-top-actions">
+                        <button class="action-btn" id="btn-copy-docx-md" title="Copy markdown to clipboard">📋 Copy Markdown</button>
+                        <button class="action-btn" id="btn-download-docx-md" title="Download .md file">💾 Download .md</button>
+                        <button class="action-btn action-btn-accent" id="btn-open-in-studio" title="Send to Markdown Studio editor">🚀 Open in Markdown Studio</button>
+                    </div>
+                </div>
+
+                <div class="drop-zone-large" id="docx-drop-zone">
+                    <span class="drop-giant-icon">📥</span>
+                    <h3 class="drop-title">Drag & Drop your <code>.docx</code> document here</h3>
+                    <p class="drop-sub">or click anywhere in this box to browse from your computer</p>
+                    <input type="file" id="docx-file-input" accept=".docx" style="display:none;">
+                </div>
+
+                <div id="docx-stats-bar" class="stats-bar" style="display:none;">
+                    <div class="stat-item"><span class="stat-label">File:</span> <strong id="stat-filename">-</strong></div>
+                    <div class="stat-item"><span class="stat-label">Words:</span> <strong id="stat-words">0</strong></div>
+                    <div class="stat-item"><span class="stat-label">Headings:</span> <strong id="stat-headings">0</strong></div>
+                    <div class="stat-item"><span class="stat-label">Tables:</span> <strong id="stat-tables">0</strong></div>
+                </div>
+
+                <div class="docx-output-area">
+                    <textarea id="docx-markdown-output" spellcheck="false" placeholder="Your converted Markdown will appear here in real-time..."></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODE 3: PDF TOOLBOX -->
+        <section class="studio-mode-view" id="view-mode-pdf" style="display:none;">
+            <div class="card pdf-toolbox-card">
+                <div class="converter-view-header">
+                    <div>
+                        <h2 class="mode-view-title">📄 Zero-Upload Private PDF Toolbox</h2>
+                        <p class="mode-view-subtitle">Convert PDF pages to high-res PNGs, assemble images into PDFs, or merge documents without uploading files to third-party servers.</p>
+                    </div>
+                </div>
+
+                <div class="pdf-subtabs-nav">
+                    <button class="pdf-subtab-btn active" id="subtab-btn-pdf2img" data-sub="pdf2img">🖼️ PDF ➔ Images (PNG)</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-img2pdf" data-sub="img2pdf">📑 Images ➔ PDF</button>
+                    <button class="pdf-subtab-btn" id="subtab-btn-merge" data-sub="merge">🔗 Merge PDFs</button>
+                </div>
+
+                <!-- PDF to Images -->
+                <div class="pdf-panel-content active" id="pdf-panel-pdf2img">
+                    <div class="drop-zone-large" id="pdf2img-drop-zone">
+                        <span class="drop-giant-icon">📄</span>
+                        <h3 class="drop-title">Select or drop a PDF to extract every page as PNG</h3>
+                        <p class="drop-sub">Rendered via Mozilla PDF.js inside browser memory</p>
+                        <input type="file" id="pdf2img-file-input" accept=".pdf" style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="pdf2img-action-bar" style="display:none;">
+                        <span id="pdf2img-status-text">Document loaded</span>
+                        <button class="action-btn action-btn-accent" id="btn-download-all-zip">📦 Download All as ZIP</button>
+                    </div>
+
+                    <div class="pdf-page-grid" id="pdf2img-thumbnails-grid"></div>
+                </div>
+
+                <!-- Images to PDF -->
+                <div class="pdf-panel-content" id="pdf-panel-img2pdf" style="display:none;">
+                    <div class="drop-zone-large" id="img2pdf-drop-zone">
+                        <span class="drop-giant-icon">🖼️</span>
+                        <h3 class="drop-title">Select or drop multiple images (PNG, JPG, WEBP)</h3>
+                        <p class="drop-sub">Compiled into standard vector PDF pages with pdf-lib</p>
+                        <input type="file" id="img2pdf-file-input" accept="image/*" multiple style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="img2pdf-action-bar" style="display:none;">
+                        <span id="img2pdf-status-text">0 images loaded</span>
+                        <button class="action-btn action-btn-accent" id="btn-compile-images-pdf">📄 Generate & Download PDF</button>
+                    </div>
+
+                    <div class="selected-images-grid" id="img2pdf-preview-grid"></div>
+                </div>
+
+                <!-- Merge PDFs -->
+                <div class="pdf-panel-content" id="pdf-panel-merge" style="display:none;">
+                    <div class="drop-zone-large" id="merge-drop-zone">
+                        <span class="drop-giant-icon">🔗</span>
+                        <h3 class="drop-title">Select or drop 2 or more PDF documents</h3>
+                        <p class="drop-sub">Merged into a single continuous PDF document</p>
+                        <input type="file" id="merge-file-input" accept=".pdf" multiple style="display:none;">
+                    </div>
+
+                    <div class="tool-action-bar" id="merge-action-bar" style="display:none;">
+                        <span id="merge-status-text">0 PDF files queued</span>
+                        <button class="action-btn action-btn-accent" id="btn-execute-merge">⚡ Merge & Download PDF</button>
+                    </div>
+
+                    <ul class="file-queue-list" id="merge-queue-list"></ul>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
     <!-- Professional Developer & Project Footer -->
@@ -325,6 +485,9 @@
                     <div class="dev-meta">
                         <a href="https://github.com/iliass-wakkar/MdDoc-Studio" target="_blank" rel="noopener noreferrer" class="dev-repo-link">
                             ⭐ GitHub: iliass-wakkar/MdDoc-Studio
+                        </a>
+                        <a href="https://buymeacoffee.com/iliasswakkar" target="_blank" rel="noopener noreferrer" class="footer-coffee-btn">
+                            ☕ Support Project (Buy Me a Coffee)
                         </a>
                         <div class="dev-public-badge">🌐 100% Free & Public Service for Everyone</div>
                     </div>

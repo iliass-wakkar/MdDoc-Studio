@@ -423,16 +423,18 @@
                     <div class="drop-zone-large" id="img2pdf-drop-zone">
                         <span class="drop-giant-icon" aria-hidden="true">🖼️</span>
                         <h3 class="drop-title">Select or drop multiple images (PNG, JPG, WEBP)</h3>
-                        <p class="drop-sub">Compiled into standard vector PDF pages with pdf-lib</p>
+                        <p class="drop-sub">One image per PDF page. Review previews and change page order before export.</p>
                         <input type="file" id="img2pdf-file-input" accept="image/*" multiple style="display:none;">
                     </div>
 
                     <div class="tool-action-bar" id="img2pdf-action-bar" style="display:none;">
-                        <span id="img2pdf-status-text">0 images loaded</span>
+                        <span id="img2pdf-status-text" aria-live="polite">0 images queued</span>
+                        <button class="action-btn" id="btn-add-images-pdf" type="button">Add images</button>
                         <button class="action-btn action-btn-accent" id="btn-compile-images-pdf">Generate & download PDF</button>
                     </div>
 
-                    <div class="selected-images-grid" id="img2pdf-preview-grid"></div>
+                    <p class="image-order-hint" id="img2pdf-order-hint" hidden>Review the previews, then use the arrows or drag a card to set the PDF page order.</p>
+                    <div class="selected-images-grid image-pages-grid" id="img2pdf-preview-grid" role="list" aria-label="Images in PDF page order"></div>
                 </div>
 
                 <!-- Merge PDFs -->

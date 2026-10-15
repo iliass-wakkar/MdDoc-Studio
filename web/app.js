@@ -1515,9 +1515,12 @@ function setupPdfToolbox() {
     const i2pActionBar = document.getElementById('img2pdf-action-bar');
     const i2pStatus = document.getElementById('img2pdf-status-text');
     const i2pGrid = document.getElementById('img2pdf-preview-grid');
+    const i2pOrderHint = document.getElementById('img2pdf-order-hint');
+    const btnAddImagesPdf = document.getElementById('btn-add-images-pdf');
     const btnCompilePdf = document.getElementById('btn-compile-images-pdf');
 
     let loadedImages = [];
+    let nextImageId = 1;
 
     if (i2pDrop && i2pInput) {
         i2pDrop.addEventListener('click', () => i2pInput.click());
@@ -1530,56 +1533,185 @@ function setupPdfToolbox() {
         });
         i2pInput.addEventListener('change', (e) => {
             handleLoadedImages(Array.from(e.target.files));
+            i2pInput.value = '';
         });
+    }
+
+    if (btnAddImagesPdf && i2pInput) {
+        btnAddImagesPdf.addEventListener('click', () => i2pInput.click());
     }
 
     function handleLoadedImages(files) {
-        const valid = files.filter(f => f.type.startsWith('image/'));
+        const valid = files.filter(file => file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(file.name));
         if (!valid.length) return showToast("Please select valid image files.", "error");
-        loadedImages.push(...valid);
-        i2pActionBar.style.display = 'flex';
-        i2pStatus.innerText = `${loadedImages.length} images queued`;
+        const added = valid.map(file => ({ id: nextImageId++, file, previewUrl: URL.createObjectURL(file) }));
+        loadedImages.push(...added);
         renderImagesList();
-        showToast(`Added ${valid.length} images!`, "success");
+        if (valid.length < files.length) {
+            showToast(`Added ${valid.length} image${valid.length === 1 ? '' : 's'}; skipped ${files.length - valid.length} unsupported file${files.length - valid.length === 1 ? '' : 's'}.`, "success");
+        } else {
+            showToast(`Added ${valid.length} image${valid.length === 1 ? '' : 's'}.`, "success");
+        }
     }
 
     function renderImagesList() {
+        const imageCount = loadedImages.length;
+        i2pActionBar.style.display = imageCount ? 'flex' : 'none';
+        i2pOrderHint.hidden = !imageCount;
+        i2pStatus.innerText = `${imageCount} image${imageCount === 1 ? '' : 's'} queued`;
+        btnCompilePdf.disabled = !imageCount;
         i2pGrid.innerHTML = "";
-        loadedImages.forEach((img, idx) => {
-            const item = document.createElement('div');
-            item.className = 'queue-item';
-            const label = document.createElement('span');
+        loadedImages.forEach((entry, idx) => {
+            const file = entry.file;
+            const item = document.createElement('article');
+            item.className = 'image-page-card';
+            item.setAttribute('role', 'listitem');
+            item.setAttribute('aria-label', `Page ${idx + 1}: ${file.name}`);
+            item.draggable = true;
+
+            const preview = document.createElement('div');
+            preview.className = 'image-page-preview';
+            const image = document.createElement('img');
+            image.src = entry.previewUrl;
+            image.alt = `Preview of ${file.name}`;
+            image.loading = 'lazy';
+            preview.appendChild(image);
+
+            const pageNumber = document.createElement('span');
+            pageNumber.className = 'image-page-number';
+            pageNumber.textContent = `Page ${String(idx + 1).padStart(2, '0')}`;
+            preview.appendChild(pageNumber);
+
+            const details = document.createElement('div');
+            details.className = 'image-page-details';
             const filename = document.createElement('strong');
-            filename.textContent = img.name;
-            label.append(`Image ${idx + 1}: `, filename, ` (${(img.size / 1024).toFixed(1)} KB)`);
+            filename.className = 'image-page-filename';
+            filename.textContent = file.name;
+            filename.title = file.name;
+            const fileSize = document.createElement('span');
+            fileSize.className = 'image-page-size';
+            fileSize.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            details.append(filename, fileSize);
+
+            const actions = document.createElement('div');
+            actions.className = 'image-page-actions';
+            const moveUp = document.createElement('button');
+            moveUp.type = 'button';
+            moveUp.className = 'image-order-button';
+            moveUp.textContent = '↑';
+            moveUp.title = 'Move page earlier';
+            moveUp.setAttribute('aria-label', `Move ${file.name} earlier`);
+            moveUp.disabled = idx === 0;
+            moveUp.addEventListener('click', () => moveImage(idx, -1));
+
+            const moveDown = document.createElement('button');
+            moveDown.type = 'button';
+            moveDown.className = 'image-order-button';
+            moveDown.textContent = '↓';
+            moveDown.title = 'Move page later';
+            moveDown.setAttribute('aria-label', `Move ${file.name} later`);
+            moveDown.disabled = idx === imageCount - 1;
+            moveDown.addEventListener('click', () => moveImage(idx, 1));
+
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
-            removeButton.className = 'action-btn';
-            removeButton.style.color = '#b42318';
+            removeButton.className = 'image-remove-button';
             removeButton.textContent = 'Remove';
-            removeButton.onclick = () => {
-                loadedImages.splice(idx, 1);
+            removeButton.addEventListener('click', () => removeImage(entry.id));
+
+            actions.append(moveUp, moveDown, removeButton);
+            item.append(preview, details, actions);
+
+            item.addEventListener('dragstart', (event) => {
+                item.classList.add('is-dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(entry.id));
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('is-dragging');
+                i2pGrid.querySelectorAll('.drop-target').forEach(card => card.classList.remove('drop-target'));
+            });
+            item.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                item.classList.add('drop-target');
+            });
+            item.addEventListener('dragleave', (event) => {
+                if (!item.contains(event.relatedTarget)) item.classList.remove('drop-target');
+            });
+            item.addEventListener('drop', (event) => {
+                event.preventDefault();
+                item.classList.remove('drop-target');
+                const draggedId = Number(event.dataTransfer.getData('text/plain'));
+                const fromIndex = loadedImages.findIndex(imageEntry => imageEntry.id === draggedId);
+                const toIndex = loadedImages.findIndex(imageEntry => imageEntry.id === entry.id);
+                if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+                const [draggedImage] = loadedImages.splice(fromIndex, 1);
+                loadedImages.splice(toIndex, 0, draggedImage);
                 renderImagesList();
-                i2pStatus.innerText = `${loadedImages.length} images queued`;
-            };
-            item.append(label, removeButton);
+            });
+
             i2pGrid.appendChild(item);
         });
+    }
+
+    function moveImage(index, direction) {
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= loadedImages.length) return;
+        [loadedImages[index], loadedImages[targetIndex]] = [loadedImages[targetIndex], loadedImages[index]];
+        renderImagesList();
+    }
+
+    function removeImage(imageId) {
+        const imageIndex = loadedImages.findIndex(entry => entry.id === imageId);
+        if (imageIndex < 0) return;
+        URL.revokeObjectURL(loadedImages[imageIndex].previewUrl);
+        loadedImages.splice(imageIndex, 1);
+        renderImagesList();
+    }
+
+    async function convertImageToPngBytes(file) {
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        try {
+            await new Promise((resolve, reject) => {
+                image.onload = resolve;
+                image.onerror = () => reject(new Error(`Could not read ${file.name} as an image.`));
+                image.src = objectUrl;
+            });
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error(`Could not prepare ${file.name} for PDF.`);
+            context.drawImage(image, 0, 0);
+            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (!pngBlob) throw new Error(`Could not convert ${file.name} to a PDF-compatible image.`);
+            return await pngBlob.arrayBuffer();
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
     }
 
     if (btnCompilePdf) {
         btnCompilePdf.addEventListener('click', async () => {
             if (!loadedImages.length) return showToast("Please add images first.", "error");
+            btnCompilePdf.disabled = true;
+            btnCompilePdf.textContent = "Generating PDF...";
             showToast("Compiling PDF in browser memory...", "success");
             try {
                 const pdfDoc = await PDFLib.PDFDocument.create();
-                for (const imgFile of loadedImages) {
+                for (const entry of loadedImages) {
+                    const imgFile = entry.file;
                     const bytes = await imgFile.arrayBuffer();
                     let embedded;
-                    if (imgFile.type.includes('png')) {
+                    const fileExtension = imgFile.name.toLowerCase().split('.').pop();
+                    if (imgFile.type.toLowerCase() === 'image/png' || fileExtension === 'png') {
                         embedded = await pdfDoc.embedPng(bytes);
-                    } else {
+                    } else if (imgFile.type.toLowerCase() === 'image/jpeg' || ['jpg', 'jpeg'].includes(fileExtension)) {
                         embedded = await pdfDoc.embedJpg(bytes);
+                    } else {
+                        embedded = await pdfDoc.embedPng(await convertImageToPngBytes(imgFile));
                     }
                     const page = pdfDoc.addPage([embedded.width, embedded.height]);
                     page.drawImage(embedded, {
@@ -1601,6 +1733,9 @@ function setupPdfToolbox() {
             } catch (err) {
                 console.error("PDF Compile Error:", err);
                 showToast("Failed to compile PDF: " + err.message, "error");
+            } finally {
+                btnCompilePdf.disabled = loadedImages.length === 0;
+                btnCompilePdf.textContent = "Generate & download PDF";
             }
         });
     }

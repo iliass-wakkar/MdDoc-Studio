@@ -22,6 +22,7 @@ except Exception:
     pass
 
 import customtkinter as ctk
+from PIL import Image, ImageOps
 
 # Ensure repo root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -757,8 +758,8 @@ class MdDocModernApp(ctk.CTk):
         card2 = ctk.CTkFrame(scroll, corner_radius=10, fg_color=("#FFFFFF", "#131C2E"), border_color=("#CBD5E1", "#1E293B"), border_width=1)
         card2.pack(fill="x", pady=(0, 12))
         ctk.CTkLabel(card2, text="Images to PDF", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color=("#0F172A", "#FFFFFF")).pack(anchor="w", padx=16, pady=(14, 4))
-        ctk.CTkLabel(card2, text="Combines multiple PNG, JPG, or WEBP images into a clean PDF.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
-        btn_i2p = ctk.CTkButton(card2, text="Select Images & Compile PDF", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_images_to_pdf)
+        ctk.CTkLabel(card2, text="Preview your images, set the page order, then create a PDF.", font=ctk.CTkFont(family="Segoe UI", size=12), text_color=("#64748B", "#94A3B8")).pack(anchor="w", padx=16, pady=(0, 10))
+        btn_i2p = ctk.CTkButton(card2, text="Select Images & Set Order", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), fg_color=("#2563EB", "#2563EB"), command=self._action_images_to_pdf)
         btn_i2p.pack(anchor="w", padx=16, pady=(0, 14))
 
         # Tool 3: Merge PDFs
@@ -1620,23 +1621,246 @@ class MdDocModernApp(ctk.CTk):
     def _action_images_to_pdf(self):
         img_paths = filedialog.askopenfilenames(
             title="Select Image Files to Compile into PDF",
-            filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp"), ("All Files", "*.*")]
+            filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tif;*.tiff"), ("All Files", "*.*")]
         )
         if not img_paths:
             return
-        out_pdf = filedialog.asksaveasfilename(
-            title="Save Compiled PDF",
-            initialfile="compiled_images.pdf",
-            defaultextension=".pdf",
-            filetypes=[("PDF Document", "*.pdf")]
+
+        ordered_paths = list(img_paths)
+        preview_images = []
+
+        top = ctk.CTkToplevel(self)
+        top.title("Images to PDF — Review page order")
+        top.geometry("920x720")
+        top.minsize(720, 560)
+        top.transient(self)
+
+        header = ctk.CTkFrame(top, fg_color="transparent")
+        header.pack(fill="x", padx=22, pady=(20, 12))
+        header_text = ctk.CTkFrame(header, fg_color="transparent")
+        header_text.pack(side="left", fill="x", expand=True)
+        ctk.CTkLabel(
+            header_text,
+            text="Review image order",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=("#0F172A", "#FFFFFF")
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            header_text,
+            text="Each image becomes one PDF page. Use the arrows to change the order.",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color=("#64748B", "#94A3B8")
+        ).pack(anchor="w", pady=(3, 0))
+
+        scroll = ctk.CTkScrollableFrame(
+            top,
+            fg_color=("#F1F5F9", "#0B0F19"),
+            corner_radius=12
         )
-        if not out_pdf:
-            return
-        try:
-            images_to_pdf(list(img_paths), out_pdf)
-            messagebox.showinfo("PDF Generated", f"Successfully compiled {len(img_paths)} images into:\n{out_pdf}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to compile PDF:\n{e}")
+        scroll.pack(fill="both", expand=True, padx=22, pady=(0, 14))
+        for column in range(2):
+            scroll.grid_columnconfigure(column, weight=1, uniform="image-page-card")
+
+        footer = ctk.CTkFrame(top, fg_color="transparent")
+        footer.pack(fill="x", padx=22, pady=(0, 18))
+        page_count_label = ctk.CTkLabel(
+            footer,
+            text="",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#475569", "#94A3B8")
+        )
+        page_count_label.pack(side="left")
+
+        def add_more_images():
+            additional_paths = filedialog.askopenfilenames(
+                parent=top,
+                title="Add Images to PDF",
+                filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.gif;*.tif;*.tiff"), ("All Files", "*.*")]
+            )
+            if additional_paths:
+                ordered_paths.extend(additional_paths)
+                render_cards()
+
+        add_button = ctk.CTkButton(
+            footer,
+            text="Add images",
+            width=112,
+            height=38,
+            fg_color=("#E2E8F0", "#1E293B"),
+            hover_color=("#CBD5E1", "#334155"),
+            text_color=("#0F172A", "#FFFFFF"),
+            command=add_more_images
+        )
+        add_button.pack(side="right", padx=(10, 0))
+
+        create_button = ctk.CTkButton(
+            footer,
+            text="Create PDF",
+            width=140,
+            height=38,
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            command=lambda: create_pdf()
+        )
+        create_button.pack(side="right")
+
+        def move_image(current_index, direction):
+            target_index = current_index + direction
+            if target_index < 0 or target_index >= len(ordered_paths):
+                return
+            ordered_paths[current_index], ordered_paths[target_index] = ordered_paths[target_index], ordered_paths[current_index]
+            render_cards()
+
+        def remove_image(current_index):
+            ordered_paths.pop(current_index)
+            render_cards()
+
+        def render_cards():
+            preview_images.clear()
+            for child in scroll.winfo_children():
+                child.destroy()
+
+            page_count_label.configure(text=f"{len(ordered_paths)} page{'s' if len(ordered_paths) != 1 else ''} · order shown left to right, top to bottom")
+            create_button.configure(state="normal" if ordered_paths else "disabled")
+
+            if not ordered_paths:
+                ctk.CTkLabel(
+                    scroll,
+                    text="No images in this PDF yet. Choose Add images to continue.",
+                    font=ctk.CTkFont(family="Segoe UI", size=13),
+                    text_color=("#64748B", "#94A3B8")
+                ).grid(row=0, column=0, columnspan=2, padx=16, pady=42)
+                return
+
+            resampling = getattr(Image, "Resampling", Image).LANCZOS
+            for index, image_path in enumerate(ordered_paths):
+                card = ctk.CTkFrame(
+                    scroll,
+                    corner_radius=12,
+                    fg_color=("#FFFFFF", "#131C2E"),
+                    border_color=("#CBD5E1", "#1E293B"),
+                    border_width=1
+                )
+                card.grid(row=index // 2, column=index % 2, padx=8, pady=8, sticky="nsew")
+
+                ctk.CTkLabel(
+                    card,
+                    text=f"PAGE {index + 1:02d}",
+                    font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+                    text_color=("#2563EB", "#60A5FA")
+                ).pack(anchor="w", padx=12, pady=(11, 7))
+
+                preview = ctk.CTkFrame(
+                    card,
+                    height=132,
+                    corner_radius=8,
+                    fg_color=("#F1F5F9", "#0A0F1A")
+                )
+                preview.pack(fill="x", padx=12)
+                preview.pack_propagate(False)
+
+                try:
+                    with Image.open(image_path) as source:
+                        oriented = ImageOps.exif_transpose(source)
+                        image_dimensions = f"{oriented.width} × {oriented.height}"
+                        rgba_image = oriented.convert("RGBA")
+                        background = Image.new("RGBA", rgba_image.size, (255, 255, 255, 255))
+                        background.alpha_composite(rgba_image)
+                        thumbnail = background.convert("RGB")
+                        thumbnail.thumbnail((220, 124), resampling)
+                    ctk_image = ctk.CTkImage(
+                        light_image=thumbnail,
+                        dark_image=thumbnail,
+                        size=thumbnail.size
+                    )
+                    preview_images.append(ctk_image)
+                    ctk.CTkLabel(preview, text="", image=ctk_image).pack(expand=True)
+                except Exception:
+                    image_dimensions = "Preview unavailable"
+                    ctk.CTkLabel(
+                        preview,
+                        text="Preview unavailable",
+                        font=ctk.CTkFont(family="Segoe UI", size=11),
+                        text_color=("#64748B", "#94A3B8")
+                    ).pack(expand=True)
+
+                filename = os.path.basename(image_path)
+                try:
+                    file_size = os.path.getsize(image_path)
+                    size_label = f"{file_size / (1024 * 1024):.2f} MB" if file_size >= 1024 * 1024 else f"{file_size / 1024:.0f} KB"
+                except OSError:
+                    size_label = ""
+
+                ctk.CTkLabel(
+                    card,
+                    text=filename,
+                    font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                    text_color=("#0F172A", "#FFFFFF"),
+                    wraplength=225,
+                    justify="left",
+                    anchor="w"
+                ).pack(fill="x", padx=12, pady=(9, 1))
+                ctk.CTkLabel(
+                    card,
+                    text=f"{image_dimensions}  ·  {size_label}" if size_label else image_dimensions,
+                    font=ctk.CTkFont(family="Segoe UI", size=10),
+                    text_color=("#64748B", "#94A3B8"),
+                    anchor="w"
+                ).pack(fill="x", padx=12, pady=(0, 9))
+
+                actions = ctk.CTkFrame(card, fg_color="transparent")
+                actions.pack(fill="x", padx=12, pady=(0, 12))
+
+                up_button = ctk.CTkButton(
+                    actions, text="↑", width=34, height=30,
+                    fg_color=("#E2E8F0", "#1E293B"), hover_color=("#CBD5E1", "#334155"),
+                    text_color=("#0F172A", "#FFFFFF"),
+                    state="disabled" if index == 0 else "normal",
+                    command=lambda i=index: move_image(i, -1)
+                )
+                up_button.pack(side="left", padx=(0, 5))
+                down_button = ctk.CTkButton(
+                    actions, text="↓", width=34, height=30,
+                    fg_color=("#E2E8F0", "#1E293B"), hover_color=("#CBD5E1", "#334155"),
+                    text_color=("#0F172A", "#FFFFFF"),
+                    state="disabled" if index == len(ordered_paths) - 1 else "normal",
+                    command=lambda i=index: move_image(i, 1)
+                )
+                down_button.pack(side="left", padx=(0, 7))
+                remove_button = ctk.CTkButton(
+                    actions, text="Remove", height=30,
+                    fg_color=("#FEF2F2", "#3B1D22"), hover_color=("#FEE2E2", "#51252A"),
+                    text_color=("#B42318", "#FCA5A5"),
+                    command=lambda i=index: remove_image(i)
+                )
+                remove_button.pack(side="left", fill="x", expand=True)
+
+        def create_pdf():
+            if not ordered_paths:
+                return
+            out_pdf = filedialog.asksaveasfilename(
+                parent=top,
+                title="Save Compiled PDF",
+                initialfile="compiled_images.pdf",
+                defaultextension=".pdf",
+                filetypes=[("PDF Document", "*.pdf")]
+            )
+            if not out_pdf:
+                return
+            create_button.configure(state="disabled", text="Creating PDF…")
+            top.update_idletasks()
+            try:
+                images_to_pdf(list(ordered_paths), out_pdf)
+                messagebox.showinfo("PDF Generated", f"Successfully compiled {len(ordered_paths)} images into:\n{out_pdf}", parent=top)
+                top.destroy()
+            except Exception as e:
+                create_button.configure(state="normal", text="Create PDF")
+                messagebox.showerror("Error", f"Failed to compile PDF:\n{e}", parent=top)
+
+        render_cards()
+        top.grab_set()
+        top.focus_force()
 
     def _action_merge_pdfs(self):
         pdf_paths = filedialog.askopenfilenames(

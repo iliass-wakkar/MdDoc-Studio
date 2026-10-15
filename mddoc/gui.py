@@ -1652,6 +1652,40 @@ class MdDocModernApp(ctk.CTk):
             text_color=("#64748B", "#94A3B8")
         ).pack(anchor="w", pady=(3, 0))
 
+        format_row = ctk.CTkFrame(top, fg_color="transparent")
+        format_row.pack(fill="x", padx=22, pady=(0, 12))
+        ctk.CTkLabel(
+            format_row,
+            text="PDF page size",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=("#334155", "#CBD5E1")
+        ).pack(side="left", padx=(0, 10))
+
+        page_format_var = tk.StringVar(value="Match image")
+        format_hint = ctk.CTkLabel(
+            format_row,
+            text="Each page matches its image dimensions.",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=("#64748B", "#94A3B8")
+        )
+
+        def update_format_hint(choice):
+            if choice.startswith("A4"):
+                format_hint.configure(text="Fits proportionally on A4; orientation follows each image.")
+            else:
+                format_hint.configure(text="Each page matches its image dimensions.")
+
+        format_menu = ctk.CTkOptionMenu(
+            format_row,
+            values=["Match image", "A4 · auto orientation"],
+            variable=page_format_var,
+            width=190,
+            height=34,
+            command=update_format_hint
+        )
+        format_menu.pack(side="left")
+        format_hint.pack(side="left", padx=(12, 0))
+
         scroll = ctk.CTkScrollableFrame(
             top,
             fg_color=("#F1F5F9", "#0B0F19"),
@@ -1851,8 +1885,10 @@ class MdDocModernApp(ctk.CTk):
             create_button.configure(state="disabled", text="Creating PDF…")
             top.update_idletasks()
             try:
-                images_to_pdf(list(ordered_paths), out_pdf)
-                messagebox.showinfo("PDF Generated", f"Successfully compiled {len(ordered_paths)} images into:\n{out_pdf}", parent=top)
+                selected_format = page_format_var.get()
+                format_value = "a4" if selected_format.startswith("A4") else "image"
+                images_to_pdf(list(ordered_paths), out_pdf, page_format=format_value)
+                messagebox.showinfo("PDF Generated", f"Successfully compiled {len(ordered_paths)} images using {selected_format} pages into:\n{out_pdf}", parent=top)
                 top.destroy()
             except Exception as e:
                 create_button.configure(state="normal", text="Create PDF")

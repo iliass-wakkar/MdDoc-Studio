@@ -5,8 +5,10 @@ Zero AGPL licensing traps. 100% offline and safe for commercial/distribution use
 """
 
 import os
+import tempfile
 from typing import List, Optional, Tuple
 from pypdf import PdfReader, PdfWriter
+from pypdf.generic import RectangleObject
 import pypdfium2 as pdfium
 
 
@@ -47,41 +49,77 @@ def pdf_to_images(
 
 def images_to_pdf(
     image_paths: List[str],
-    output_pdf_path: str
+    output_pdf_path: str,
+    page_format: str = "image"
 ) -> str:
     """
-    Convert a list of images (PNG, JPG, WEBP) into a single standard PDF.
+    Convert images into a PDF using either image-sized pages or A4 pages.
     
     Args:
         image_paths: List of paths to source images.
         output_pdf_path: Target path for the output PDF.
+        page_format: "image" to size each page to its image, or "a4" to
+            fit each image proportionally on an A4 page with a white background.
         
     Returns:
         Path to generated PDF file.
     """
     if not image_paths:
         raise ValueError("At least one image path must be provided.")
+    if page_format not in {"image", "a4"}:
+        raise ValueError("page_format must be either 'image' or 'a4'.")
 
-    from PIL import Image
+    from PIL import Image, ImageOps
 
     os.makedirs(os.path.dirname(os.path.abspath(output_pdf_path)), exist_ok=True)
 
     pil_images = []
     for p in image_paths:
-        img = Image.open(p)
-        # Convert to RGB (in case of PNG with transparency / RGBA)
-        if img.mode in ("RGBA", "LA", "P"):
-            rgb_img = Image.new("RGB", img.size, (255, 255, 255))
-            if img.mode == "P":
-                img = img.convert("RGBA")
-            rgb_img.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
-            pil_images.append(rgb_img)
-        else:
-            pil_images.append(img.convert("RGB"))
+        with Image.open(p) as source:
+            oriented = ImageOps.exif_transpose(source).convert("RGBA")
+            image = Image.new("RGB", oriented.size, (255, 255, 255))
+            image.paste(oriented, mask=oriented.getchannel("A"))
+
+        if page_format == "a4":
+            # A4 at 100 DPI, matching the resolution used for the output PDF.
+            a4_portrait = (827, 1169)
+            page_size = a4_portrait if image.height >= image.width else tuple(reversed(a4_portrait))
+            scale = min(page_size[0] / image.width, page_size[1] / image.height)
+            resampling = getattr(Image, "Resampling", Image).LANCZOS
+            fitted_size = (max(1, round(image.width * scale)), max(1, round(image.height * scale)))
+            fitted = image.resize(fitted_size, resampling)
+            a4_page = Image.new("RGB", page_size, (255, 255, 255))
+            offset = ((page_size[0] - fitted.width) // 2, (page_size[1] - fitted.height) // 2)
+            a4_page.paste(fitted, offset)
+            image = a4_page
+
+        pil_images.append(image)
 
     first = pil_images[0]
     rest = pil_images[1:] if len(pil_images) > 1 else []
-    first.save(output_pdf_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
+    if page_format == "image":
+        first.save(output_pdf_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
+    else:
+        # Pillow writes pixel-based page sizes. Set the PDF page boxes to the
+        # exact A4 point dimensions after rasterizing the fitted page artwork.
+        with tempfile.NamedTemporaryFile(suffix=".pdf", dir=os.path.dirname(os.path.abspath(output_pdf_path)), delete=False) as temp_file:
+            temp_pdf_path = temp_file.name
+        try:
+            first.save(temp_pdf_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
+            reader = PdfReader(temp_pdf_path)
+            writer = PdfWriter()
+            a4_long, a4_short = 841.88976378, 595.27559055
+            for page, image in zip(reader.pages, pil_images):
+                page_width, page_height = (a4_short, a4_long) if image.height >= image.width else (a4_long, a4_short)
+                exact_a4 = RectangleObject([0, 0, page_width, page_height])
+                page.mediabox = exact_a4
+                page.cropbox = exact_a4
+                writer.add_page(page)
+            with open(output_pdf_path, "wb") as output_file:
+                writer.write(output_file)
+        finally:
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
 
     return os.path.abspath(output_pdf_path)
 

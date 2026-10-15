@@ -1516,8 +1516,20 @@ function setupPdfToolbox() {
     const i2pStatus = document.getElementById('img2pdf-status-text');
     const i2pGrid = document.getElementById('img2pdf-preview-grid');
     const i2pOrderHint = document.getElementById('img2pdf-order-hint');
+    const i2pPageFormat = document.getElementById('img2pdf-page-format');
+    const i2pFormatHint = document.getElementById('img2pdf-format-hint');
     const btnAddImagesPdf = document.getElementById('btn-add-images-pdf');
     const btnCompilePdf = document.getElementById('btn-compile-images-pdf');
+
+    function updateImagePdfFormatHint() {
+        if (!i2pFormatHint || !i2pPageFormat) return;
+        i2pFormatHint.textContent = i2pPageFormat.value === 'a4'
+            ? 'Fits proportionally on A4; orientation follows each image.'
+            : 'Each page matches its image dimensions.';
+    }
+
+    i2pPageFormat?.addEventListener('change', updateImagePdfFormatHint);
+    updateImagePdfFormatHint();
 
     let loadedImages = [];
     let nextImageId = 1;
@@ -1701,24 +1713,43 @@ function setupPdfToolbox() {
             showToast("Compiling PDF in browser memory...", "success");
             try {
                 const pdfDoc = await PDFLib.PDFDocument.create();
+                const useA4Pages = i2pPageFormat?.value === 'a4';
+                const a4Portrait = [595.27559055, 841.88976378];
                 for (const entry of loadedImages) {
                     const imgFile = entry.file;
-                    const bytes = await imgFile.arrayBuffer();
+                    const bytes = useA4Pages
+                        ? await convertImageToPngBytes(imgFile)
+                        : await imgFile.arrayBuffer();
                     let embedded;
                     const fileExtension = imgFile.name.toLowerCase().split('.').pop();
-                    if (imgFile.type.toLowerCase() === 'image/png' || fileExtension === 'png') {
+                    if (useA4Pages || imgFile.type.toLowerCase() === 'image/png' || fileExtension === 'png') {
                         embedded = await pdfDoc.embedPng(bytes);
                     } else if (imgFile.type.toLowerCase() === 'image/jpeg' || ['jpg', 'jpeg'].includes(fileExtension)) {
                         embedded = await pdfDoc.embedJpg(bytes);
                     } else {
                         embedded = await pdfDoc.embedPng(await convertImageToPngBytes(imgFile));
                     }
-                    const page = pdfDoc.addPage([embedded.width, embedded.height]);
+                    const pageSize = useA4Pages
+                        ? (embedded.width > embedded.height ? [...a4Portrait].reverse() : a4Portrait)
+                        : [embedded.width, embedded.height];
+                    const page = pdfDoc.addPage(pageSize);
+                    if (useA4Pages) {
+                        page.drawRectangle({
+                            x: 0,
+                            y: 0,
+                            width: pageSize[0],
+                            height: pageSize[1],
+                            color: PDFLib.rgb(1, 1, 1)
+                        });
+                    }
+                    const scale = Math.min(pageSize[0] / embedded.width, pageSize[1] / embedded.height);
+                    const imageWidth = embedded.width * scale;
+                    const imageHeight = embedded.height * scale;
                     page.drawImage(embedded, {
-                        x: 0,
-                        y: 0,
-                        width: embedded.width,
-                        height: embedded.height
+                        x: (pageSize[0] - imageWidth) / 2,
+                        y: (pageSize[1] - imageHeight) / 2,
+                        width: imageWidth,
+                        height: imageHeight
                     });
                 }
                 const pdfBytes = await pdfDoc.save();
@@ -1729,7 +1760,7 @@ function setupPdfToolbox() {
                 a.download = "compiled_images.pdf";
                 a.click();
                 a.remove();
-                showToast("PDF generated and downloaded!", "success");
+                showToast(`PDF generated with ${useA4Pages ? 'A4' : 'image-sized'} pages and downloaded!`, "success");
             } catch (err) {
                 console.error("PDF Compile Error:", err);
                 showToast("Failed to compile PDF: " + err.message, "error");

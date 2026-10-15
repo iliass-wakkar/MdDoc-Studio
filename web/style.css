@@ -1884,6 +1884,26 @@ body.theme-obsidian .conversion-hint { color: #a9bac7; }
     color: var(--text-muted);
     font-size: 13px;
 }
+.image-page-format {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+    font-size: 12px;
+    font-weight: 600;
+}
+.image-page-format select {
+    min-height: 36px;
+    min-width: 184px;
+    padding: 6px 30px 6px 10px;
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 1px solid var(--border-hover);
+    border-radius: 7px;
+    font: inherit;
+    font-weight: 500;
+}
+#img2pdf-format-hint { display: inline-block; margin-left: 6px; }
 .image-pages-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -1988,6 +2008,7 @@ body.theme-obsidian .conversion-hint { color: #a9bac7; }
 .image-remove-button:hover { color: #912018; background: #FEF3F2; }
 body.theme-obsidian .image-page-card { background: #111923; border-color: #30363D; }
 body.theme-obsidian .image-page-preview { background: #0D1117; border-color: #30363D; }
+body.theme-obsidian .image-page-format select { color: #E6EDF3; background: #111923; border-color: #30363D; }
 body.theme-obsidian .image-page-filename,
 body.theme-obsidian .image-order-button { color: #E6EDF3; }
 body.theme-obsidian .image-order-button,
@@ -1996,6 +2017,8 @@ body.theme-obsidian .image-order-button:hover:not(:disabled) { background: #1C2A
 body.theme-obsidian .image-remove-button:hover { background: #3D1C20; }
 
 @media (max-width: 640px) {
+    .image-page-format { width: 100%; justify-content: space-between; }
+    .image-page-format select { flex: 1; min-width: 0; }
     .image-pages-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
     .image-page-card { padding: 7px; border-radius: 10px; }
     .image-page-actions { gap: 4px; }

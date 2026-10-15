@@ -12,7 +12,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' blob:; worker-src * blob:; connect-src *;">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="stylesheet" href="style.css?v=1.3.1-image-cards">
+    <link rel="stylesheet" href="style.css?v=1.3.2-pdf-page-format">
 
     <!-- Schema.org SoftwareApplication JSON-LD for Google Rich Results -->
     <script type="application/ld+json">
@@ -429,11 +429,21 @@
 
                     <div class="tool-action-bar" id="img2pdf-action-bar" style="display:none;">
                         <span id="img2pdf-status-text" aria-live="polite">0 images queued</span>
+                        <label class="image-page-format" for="img2pdf-page-format">
+                            <span>Page size</span>
+                            <select id="img2pdf-page-format" aria-describedby="img2pdf-format-hint">
+                                <option value="image">Match image</option>
+                                <option value="a4">A4 · auto orientation</option>
+                            </select>
+                        </label>
                         <button class="action-btn" id="btn-add-images-pdf" type="button">Add images</button>
                         <button class="action-btn action-btn-accent" id="btn-compile-images-pdf">Generate & download PDF</button>
                     </div>
 
-                    <p class="image-order-hint" id="img2pdf-order-hint" hidden>Review the previews, then use the arrows or drag a card to set the PDF page order.</p>
+                    <p class="image-order-hint" id="img2pdf-order-hint" hidden>
+                        Review the previews, then use the arrows or drag a card to set the PDF page order.
+                        <span id="img2pdf-format-hint">Each page matches its image dimensions.</span>
+                    </p>
                     <div class="selected-images-grid image-pages-grid" id="img2pdf-preview-grid" role="list" aria-label="Images in PDF page order"></div>
                 </div>
 
@@ -665,6 +675,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=1.2.1-image-cards"></script>
+    <script src="app.js?v=1.2.2-pdf-page-format"></script>
 </body>
 </html>
